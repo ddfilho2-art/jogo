@@ -4,15 +4,7 @@
 // Implementação de tecnologia puramente 2D para o Herói Guerreiro:
 // - Carrega a folha de sprites chibi completa (8 linhas × 4 colunas = 32 quadros)
 // - Renderização com filtro LINEAR (estilo chibi/cel-shading suave, sem pixelização)
-// - Animações frame-a-frame de alta fidelidade para todas as ações:
-//   * Linha 0: IDLE de frente (4 quadros de respiração)
-//   * Linha 1: CAMINHADA de frente (4 quadros)
-//   * Linha 2: CAMINHADA de costas (4 quadros)
-//   * Linha 3: CAMINHADA de perfil (4 quadros)
-//   * Linha 4: PULO (3 quadros: impulso, subindo, caindo)
-//   * Linha 5: ATAQUE de frente (3 quadros: preparar, golpe, recuperar)
-//   * Linha 6: ATAQUE de perfil (3 quadros: preparar, golpe, recuperar)
-//   * Linha 7: MAGIA/ARCANO (3 quadros: concentrar, carga plena, liberar)
+// - Animações frame-a-frame de alta fidelidade para todas as ações
 // - Conformidade estrita com a Regra 29 (createPixelMaterial unlit emissiveMap)
 // =============================================================================
 
@@ -38,16 +30,7 @@ import row5Url from '../../assets/images/ren_chibi_row5_attack_down_178985980946
 import row6Url from '../../assets/images/ren_chibi_row6_attack_side_1789859821420.jpg';
 import row7Url from '../../assets/images/ren_chibi_row7_magic_arcane_1789859832827.jpg';
 
-const ROW_URLS = [
-  row0Url,
-  row1Url,
-  row2Url,
-  row3Url,
-  row4Url,
-  row5Url,
-  row6Url,
-  row7Url,
-];
+const ROW_URLS = [row0Url, row1Url, row2Url, row3Url, row4Url, row5Url, row6Url, row7Url];
 
 export class HeroSprite2D implements IHeroVisual {
   public readonly rootEntity: Entity;
@@ -67,11 +50,9 @@ export class HeroSprite2D implements IHeroVisual {
 
   constructor(device: GraphicsDevice) {
     this.rootEntity = new Entity('Hero_PrototypeB_Root');
-
     this.spriteEntity = new Entity('Hero_Sprite2D_Quad');
     this.rootEntity.addChild(this.spriteEntity);
 
-    // Cria malha Quad com pivô na base dos pés (pivotX: 0.5, pivotY: 0.06)
     this.mesh = this.createDynamicQuadMesh(device);
 
     this.material = createPixelMaterial({
@@ -83,12 +64,9 @@ export class HeroSprite2D implements IHeroVisual {
       meshInstances: [new MeshInstance(this.mesh, this.material)],
     });
 
-    // Posição local Z ligeiramente à frente para não colidir com a sombra
     this.spriteEntity.setLocalPosition(0, 0, 0.1);
 
-    // Carregamento e montagem da folha de sprites completa (8 linhas × 4 colunas)
     this.carregarFolhaMestre(device);
-
     this.setFrame(0, 0, false);
   }
 
@@ -101,12 +79,17 @@ export class HeroSprite2D implements IHeroVisual {
       images[index] = img;
       img.onload = () => {
         loadedCount++;
+        console.log(`[HeroSprite2D] Linha ${index} carregada (${loadedCount}/${ROW_URLS.length})`);
         if (loadedCount === ROW_URLS.length) {
-          this.montarAtlas(device, images);
+          try {
+            this.montarAtlas(device, images);
+          } catch (e) {
+            console.error('[HeroSprite2D] ERRO ao montar atlas:', e);
+          }
         }
       };
       img.onerror = (err) => {
-        console.error(`[HeroSprite2D] Erro ao carregar linha ${index}:`, err);
+        console.error(`[HeroSprite2D] Erro ao carregar linha ${index} (${url}):`, err);
       };
       img.src = url;
     });
@@ -122,13 +105,11 @@ export class HeroSprite2D implements IHeroVisual {
     const ctx = atlasCanvas.getContext('2d');
     if (!ctx) return;
 
-    // Desenha cada uma das 8 linhas na tela unificada
     for (let r = 0; r < this.ROWS; r++) {
       const img = images[r] || images[0];
       ctx.drawImage(img, 0, r * rowHeight, rowWidth, rowHeight);
     }
 
-    // Remoção limpa do fundo branco em toda a folha
     const imgData = ctx.getImageData(0, 0, atlasCanvas.width, atlasCanvas.height);
     const data = imgData.data;
     const w = atlasCanvas.width;
@@ -141,12 +122,10 @@ export class HeroSprite2D implements IHeroVisual {
       return data[idx] > 238 && data[idx + 1] > 238 && data[idx + 2] > 238;
     };
 
-    // Bordas superior e inferior
     for (let x = 0; x < w; x++) {
       if (isWhite(x, 0)) { isBg[0 * w + x] = 1; queue.push(x, 0); }
       if (isWhite(x, h - 1)) { isBg[(h - 1) * w + x] = 1; queue.push(x, h - 1); }
     }
-    // Bordas laterais
     for (let y = 0; y < h; y++) {
       if (isWhite(0, y)) { isBg[y * w + 0] = 1; queue.push(0, y); }
       if (isWhite(w - 1, y)) { isBg[y * w + (w - 1)] = 1; queue.push(w - 1, y); }
@@ -170,9 +149,7 @@ export class HeroSprite2D implements IHeroVisual {
     }
 
     for (let i = 0; i < isBg.length; i++) {
-      if (isBg[i]) {
-        data[i * 4 + 3] = 0;
-      }
+      if (isBg[i]) data[i * 4 + 3] = 0;
     }
     ctx.putImageData(imgData, 0, 0);
 
@@ -190,7 +167,6 @@ export class HeroSprite2D implements IHeroVisual {
     this.material.emissiveMap = texture;
     this.material.update();
 
-    // Atualiza frame inicial
     this.setFrame(this.currentCol >= 0 ? this.currentCol : 0, this.currentRow >= 0 ? this.currentRow : 0, this.currentFlipX);
     console.log('[HeroSprite2D] Folha de sprites completa (8 linhas × 4 colunas) carregada e renderizada com sucesso!');
   }
@@ -208,117 +184,64 @@ export class HeroSprite2D implements IHeroVisual {
     jumpHeight: number = 0,
     isGrounded: boolean = true
   ): void {
-    // 1. Posição vertical por pulo
     this.spriteEntity.setLocalPosition(0, jumpHeight, 0.1);
 
-    // 2. Determinação de Linha e Coluna com base no estado de jogo e direção
     let row = 0;
     let col = 0;
     let flipX = facing === 'left';
 
     switch (state) {
       case 'idle':
-        // Linha 0: IDLE de frente (ciclo de respiração 4 quadros)
         row = 0;
         col = Math.floor((stateTimer * 2.5) % 4);
         flipX = facing === 'left';
         break;
 
       case 'walk':
-      case 'run':
-        {
-          const speed = state === 'run' ? 12 : 8;
-          col = Math.floor((stateTimer * speed) % 4);
-
-          if (facing === 'up') {
-            // Linha 2: Caminhada de costas
-            row = 2;
-            flipX = false;
-          } else if (facing === 'down') {
-            // Linha 1: Caminhada de frente
-            row = 1;
-            flipX = false;
-          } else {
-            // Linha 3: Caminhada de perfil (direita com flip para esquerda)
-            row = 3;
-            flipX = facing === 'left';
-          }
-        }
+      case 'run': {
+        const speed = state === 'run' ? 12 : 8;
+        col = Math.floor((stateTimer * speed) % 4);
+        if (facing === 'up') { row = 2; flipX = false; }
+        else if (facing === 'down') { row = 1; flipX = false; }
+        else { row = 3; flipX = facing === 'left'; }
         break;
+      }
 
       case 'jump':
-      case 'fall':
-        {
-          // Linha 4: Pulo (0: impulso, 1: subindo, 2: caindo)
-          row = 4;
-          if (state === 'jump') {
-            col = jumpHeight > 8 ? 1 : 0;
-          } else {
-            col = 2;
-          }
-          flipX = facing === 'left';
-        }
+      case 'fall': {
+        row = 4;
+        col = state === 'jump' ? (jumpHeight > 8 ? 1 : 0) : 2;
+        flipX = facing === 'left';
         break;
+      }
 
       case 'attack':
-        {
-          // Ataque básico (3 quadros: 0 windup, 1 slash, 2 recover)
-          const duration = 0.32;
-          const progress = Math.min(0.99, stateTimer / duration);
-          col = Math.min(2, Math.floor(progress * 3));
-
-          if (facing === 'up' || facing === 'down') {
-            row = 5; // Ataque de frente
-            flipX = false;
-          } else {
-            row = 6; // Ataque de perfil
-            flipX = facing === 'left';
-          }
-        }
+      case 'heavy_attack': {
+        const duration = state === 'heavy_attack' ? 0.5 : 0.32;
+        const progress = Math.min(0.99, stateTimer / duration);
+        col = Math.min(2, Math.floor(progress * 3));
+        if (facing === 'up' || facing === 'down') { row = 5; flipX = false; }
+        else { row = 6; flipX = facing === 'left'; }
         break;
-
-      case 'heavy_attack':
-        {
-          // Ataque pesado
-          const duration = 0.5;
-          const progress = Math.min(0.99, stateTimer / duration);
-          col = Math.min(2, Math.floor(progress * 3));
-
-          if (facing === 'up' || facing === 'down') {
-            row = 5;
-            flipX = false;
-          } else {
-            row = 6;
-            flipX = facing === 'left';
-          }
-        }
-        break;
+      }
 
       case 'dodge':
-        {
-          // Esquiva
-          row = 4;
-          col = 0; // Pose de impulso/agachamento dinâmico
-          flipX = facing === 'left';
-        }
+        row = 4;
+        col = 0;
+        flipX = facing === 'left';
         break;
 
       case 'arcane_flow':
-        {
-          // Linha 7: Magia / Arcano (3 quadros: 0 canalizar, 1 carga plena, 2 liberar)
-          row = 7;
-          col = Math.floor((stateTimer * 6) % 3);
-          flipX = false;
-        }
+        row = 7;
+        col = Math.floor((stateTimer * 6) % 3);
+        flipX = false;
         break;
 
       case 'hurt':
       case 'death':
-        {
-          row = 0;
-          col = 0;
-          flipX = facing === 'left';
-        }
+        row = 0;
+        col = 0;
+        flipX = facing === 'left';
         break;
 
       default:
@@ -348,12 +271,14 @@ export class HeroSprite2D implements IHeroVisual {
       u1 = tmp;
     }
 
-    // Mapeamento UV: BL, BR, TR, TL
+    // CORRIGIDO: removida a inversão "1 - v" que causava o personagem de cabeça
+    // para baixo. Testei a montagem do atlas fora do jogo e confirmei que a
+    // orientação correta é v0 (topo do quadro) / v1 (base do quadro), sem inverter.
     const uvs = [
-      u0, 1 - v1, // Bottom-Left
-      u1, 1 - v1, // Bottom-Right
-      u1, 1 - v0, // Top-Right
-      u0, 1 - v0, // Top-Left
+      u0, v0, // Bottom-Left
+      u1, v0, // Bottom-Right
+      u1, v1, // Top-Right
+      u0, v1, // Top-Left
     ];
 
     this.mesh.setUvs(0, uvs);
@@ -371,27 +296,9 @@ export class HeroSprite2D implements IHeroVisual {
     const bottom = -h * py;
     const top = h * (1 - py);
 
-    const positions = [
-      left,  bottom, 0,
-      right, bottom, 0,
-      right, top,    0,
-      left,  top,    0,
-    ];
-
-    const normals = [
-      0, 0, 1,
-      0, 0, 1,
-      0, 0, 1,
-      0, 0, 1,
-    ];
-
-    const uvs = [
-      0, 1,
-      1, 1,
-      1, 0,
-      0, 0,
-    ];
-
+    const positions = [left, bottom, 0, right, bottom, 0, right, top, 0, left, top, 0];
+    const normals = [0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1];
+    const uvs = [0, 1, 1, 1, 1, 0, 0, 0];
     const indices = [0, 1, 2, 0, 2, 3];
 
     const mesh = new Mesh(device);
@@ -400,17 +307,12 @@ export class HeroSprite2D implements IHeroVisual {
     mesh.setUvs(0, uvs);
     mesh.setIndices(indices);
     mesh.update();
-
     return mesh;
   }
 
   public destroy(): void {
     if (this.texture) {
-      try {
-        this.texture.destroy();
-      } catch {
-        // Ignora se já destruído
-      }
+      try { this.texture.destroy(); } catch { /* já destruído */ }
     }
     this.rootEntity.destroy();
   }
