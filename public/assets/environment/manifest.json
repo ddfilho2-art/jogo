@@ -1,0 +1,14 @@
+{
+  "category": "environment",
+  "description": "Vegetação orgânica, árvores sem formas geométricas, pedras 3D e sombras",
+  "trees": {
+    "tree_small_1": { "width": 48, "height": 64, "hitbox": { "width": 18, "height": 12, "offsetY": 50 } },
+    "tree_medium_1": { "width": 64, "height": 88, "hitbox": { "width": 24, "height": 14, "offsetY": 72 } },
+    "tree_large_1": { "width": 96, "height": 128, "hitbox": { "width": 36, "height": 18, "offsetY": 108 } },
+    "tree_old": { "width": 96, "height": 128, "hitbox": { "width": 38, "height": 18, "offsetY": 108 } },
+    "tree_dead_1": { "width": 64, "height": 88, "hitbox": { "width": 16, "height": 12, "offsetY": 74 } }
+  },
+  "rocks": [
+    "rock_large_1", "rock_large_2", "rock_med_1", "rock_med_2", "rock_small_1", "rock_small_2"
+  ]
+}

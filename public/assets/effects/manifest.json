@@ -1,0 +1,7 @@
+{
+  "category": "effects",
+  "particles": [
+    "part_dust_v5", "part_leaf_v5", "part_spark_v5", "part_impact_v5",
+    "part_magic_v5", "part_snow_v5", "part_sand_v5", "part_water_v5"
+  ]
+}

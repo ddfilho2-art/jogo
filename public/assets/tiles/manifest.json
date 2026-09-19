@@ -1,0 +1,14 @@
+{
+  "category": "tiles",
+  "tileSize": 32,
+  "regions": [
+    "valeVerdejante",
+    "charcoSombrio",
+    "terrasGeladas",
+    "desertoKaal",
+    "penhascosPedra",
+    "ruinasSubmersas",
+    "cidadelaCinzenta"
+  ],
+  "atlas": "tileset_v5"
+}

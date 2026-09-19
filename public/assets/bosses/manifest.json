@@ -1,0 +1,7 @@
+{
+  "category": "bosses",
+  "bosses": [
+    { "name": "Vaelok, O Flagelo Alado", "regiao": "penhascosPedra" },
+    { "name": "Titan de Cinzas", "regiao": "cidadelaCinzenta" }
+  ]
+}

@@ -1,0 +1,4 @@
+{
+  "category": "ui",
+  "elements": ["coracao_hud", "barra_fluxo", "moldura_item", "painel_pause"]
+}

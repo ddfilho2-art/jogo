@@ -1,0 +1,6 @@
+{
+  "name": "Eldrim: Ecos do Passado",
+  "description": "RPG de ação top-down 2D pixel art 16-bit com combate em tempo real e exploração.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

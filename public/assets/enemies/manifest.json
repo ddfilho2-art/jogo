@@ -1,0 +1,4 @@
+{
+  "category": "enemies",
+  "creatures": ["lobo_sombrio", "espectro_cinzento", "escorpiao_kaal", "golem_pedra"]
+}

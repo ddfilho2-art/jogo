@@ -1,0 +1,17 @@
+{
+  "category": "characters",
+  "name": "Ren - O Guardião",
+  "description": "Spritesheet e atlas do protagonista Ren de Eldrim",
+  "frameWidth": 48,
+  "frameHeight": 64,
+  "bodyDimensions": { "width": 36, "height": 52 },
+  "animations": [
+    "idle_down", "idle_up", "idle_left", "idle_right",
+    "walk_down", "walk_up", "walk_left", "walk_right",
+    "attack_down", "attack_up", "attack_left", "attack_right",
+    "charged_attack",
+    "dodge_down", "dodge_up", "dodge_left", "dodge_right",
+    "hurt_down", "hurt_up", "hurt_left", "hurt_right",
+    "death"
+  ]
+}
