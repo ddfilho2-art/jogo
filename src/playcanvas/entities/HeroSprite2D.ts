@@ -1,12 +1,6 @@
 // =============================================================================
 // ELDRIM: ECOS DO PASSADO - HERO SPRITE 2D (PROTÓTIPO B - SPRITE 2D TRADICIONAL)
 // =============================================================================
-// Implementação de tecnologia puramente 2D para o Herói Guerreiro:
-// - Carrega a folha de sprites chibi completa (8 linhas × 4 colunas = 32 quadros)
-// - Renderização com filtro LINEAR (estilo chibi/cel-shading suave, sem pixelização)
-// - Animações frame-a-frame de alta fidelidade para todas as ações
-// - Conformidade estrita com a Regra 29 (createPixelMaterial unlit emissiveMap)
-// =============================================================================
 
 import {
   Entity,
@@ -32,6 +26,11 @@ import row7Url from '../../assets/images/ren_chibi_row7_magic_arcane_17898598328
 
 const ROW_URLS = [row0Url, row1Url, row2Url, row3Url, row4Url, row5Url, row6Url, row7Url];
 
+// Durações reais dos estados temporários, copiadas de RenEntity.ts (contagem regressiva)
+const ATTACK_DURATION = 0.35;
+const HEAVY_ATTACK_DURATION = 0.55;
+const ARCANE_DURATION = 0.6;
+
 export class HeroSprite2D implements IHeroVisual {
   public readonly rootEntity: Entity;
   private spriteEntity: Entity;
@@ -42,6 +41,10 @@ export class HeroSprite2D implements IHeroVisual {
   private currentCol = -1;
   private currentRow = -1;
   private currentFlipX = false;
+
+  // Relógio PRÓPRIO de animação — avança a cada frame, independente do
+  // stateTimer do RenEntity (que é contagem regressiva só de ações temporárias).
+  private animClock = 0;
 
   private readonly COLS = 4;
   private readonly ROWS = 8;
@@ -79,7 +82,6 @@ export class HeroSprite2D implements IHeroVisual {
       images[index] = img;
       img.onload = () => {
         loadedCount++;
-        console.log(`[HeroSprite2D] Linha ${index} carregada (${loadedCount}/${ROW_URLS.length})`);
         if (loadedCount === ROW_URLS.length) {
           try {
             this.montarAtlas(device, images);
@@ -168,7 +170,6 @@ export class HeroSprite2D implements IHeroVisual {
     this.material.update();
 
     this.setFrame(this.currentCol >= 0 ? this.currentCol : 0, this.currentRow >= 0 ? this.currentRow : 0, this.currentFlipX);
-    console.log('[HeroSprite2D] Folha de sprites completa (8 linhas × 4 colunas) carregada e renderizada com sucesso!');
   }
 
   public setVisible(visible: boolean): void {
@@ -185,25 +186,28 @@ export class HeroSprite2D implements IHeroVisual {
     isGrounded: boolean = true
   ): void {
     this.spriteEntity.setLocalPosition(0, jumpHeight, 0.1);
+    this.animClock += dt;
 
     let row = 0;
     let col = 0;
-    let flipX = facing === 'left';
+    // CORRIGIDO: a arte de perfil (linhas 3 e 6) olha pra ESQUERDA por padrão,
+    // então espelhamos quando o personagem olha pra DIREITA, não pra esquerda.
+    let flipX = facing === 'right';
 
     switch (state) {
       case 'idle':
         row = 0;
-        col = Math.floor((stateTimer * 2.5) % 4);
-        flipX = facing === 'left';
+        col = Math.floor((this.animClock * 2.5) % 4);
+        flipX = facing === 'right';
         break;
 
       case 'walk':
       case 'run': {
         const speed = state === 'run' ? 12 : 8;
-        col = Math.floor((stateTimer * speed) % 4);
+        col = Math.floor((this.animClock * speed) % 4);
         if (facing === 'up') { row = 2; flipX = false; }
         else if (facing === 'down') { row = 1; flipX = false; }
-        else { row = 3; flipX = facing === 'left'; }
+        else { row = 3; flipX = facing === 'right'; }
         break;
       }
 
@@ -211,43 +215,45 @@ export class HeroSprite2D implements IHeroVisual {
       case 'fall': {
         row = 4;
         col = state === 'jump' ? (jumpHeight > 8 ? 1 : 0) : 2;
-        flipX = facing === 'left';
+        flipX = facing === 'right';
         break;
       }
 
       case 'attack':
       case 'heavy_attack': {
-        const duration = state === 'heavy_attack' ? 0.5 : 0.32;
-        const progress = Math.min(0.99, stateTimer / duration);
+        // stateTimer é CONTAGEM REGRESSIVA aqui — progresso = 1 - (restante / duração total)
+        const maxDuration = state === 'heavy_attack' ? HEAVY_ATTACK_DURATION : ATTACK_DURATION;
+        const progress = Math.min(0.99, Math.max(0, 1 - stateTimer / maxDuration));
         col = Math.min(2, Math.floor(progress * 3));
         if (facing === 'up' || facing === 'down') { row = 5; flipX = false; }
-        else { row = 6; flipX = facing === 'left'; }
+        else { row = 6; flipX = facing === 'right'; }
         break;
       }
 
       case 'dodge':
         row = 4;
         col = 0;
-        flipX = facing === 'left';
+        flipX = facing === 'right';
         break;
 
-      case 'arcane_flow':
+      case 'arcane_flow': {
+        const progress = Math.min(0.99, Math.max(0, 1 - stateTimer / ARCANE_DURATION));
         row = 7;
-        col = Math.floor((stateTimer * 6) % 3);
+        col = Math.min(2, Math.floor(progress * 3));
         flipX = false;
         break;
+      }
 
       case 'hurt':
       case 'death':
         row = 0;
         col = 0;
-        flipX = facing === 'left';
+        flipX = facing === 'right';
         break;
 
       default:
         row = 0;
         col = 0;
-        flipX = facing === 'left';
         break;
     }
 
@@ -271,14 +277,13 @@ export class HeroSprite2D implements IHeroVisual {
       u1 = tmp;
     }
 
-    // CORRIGIDO: removida a inversão "1 - v" que causava o personagem de cabeça
-    // para baixo. Testei a montagem do atlas fora do jogo e confirmei que a
-    // orientação correta é v0 (topo do quadro) / v1 (base do quadro), sem inverter.
+    // Consistente com a malha base (createDynamicQuadMesh): base do boneco = V alto (v1),
+    // topo do boneco = V baixo (v0).
     const uvs = [
-      u0, v0, // Bottom-Left
-      u1, v0, // Bottom-Right
-      u1, v1, // Top-Right
-      u0, v1, // Top-Left
+      u0, v1, // Bottom-Left
+      u1, v1, // Bottom-Right
+      u1, v0, // Top-Right
+      u0, v0, // Top-Left
     ];
 
     this.mesh.setUvs(0, uvs);
