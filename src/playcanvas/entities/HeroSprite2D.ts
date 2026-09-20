@@ -173,6 +173,8 @@ export class HeroSprite2D implements IHeroVisual {
     this.texture = texture;
     this.material.diffuseMap = texture;
     this.material.emissiveMap = texture;
+    this.material.opacityMap = texture;
+    this.material.opacityMapChannel = 'a';
     this.material.update();
     console.log('[HeroSprite2D] Material atualizado. opacityMap presente?', !!this.material.opacityMap, '| blendType:', this.material.blendType);
 
@@ -197,13 +199,13 @@ export class HeroSprite2D implements IHeroVisual {
 
     let row = 0;
     let col = 0;
-    let flipX = facing === 'right';
+    let flipX = facing === 'left';
 
     switch (state) {
       case 'idle':
         row = 0;
         col = Math.floor((this.animClock * 2.5) % 4);
-        flipX = facing === 'right';
+        flipX = facing === 'left';
         break;
 
       case 'walk':
