@@ -82,6 +82,7 @@ export class HeroSprite2D implements IHeroVisual {
       images[index] = img;
       img.onload = () => {
         loadedCount++;
+        console.log(`[HeroSprite2D] Linha ${index} carregada (${loadedCount}/${ROW_URLS.length})`);
         if (loadedCount === ROW_URLS.length) {
           try {
             this.montarAtlas(device, images);
@@ -98,19 +99,22 @@ export class HeroSprite2D implements IHeroVisual {
   }
 
   private montarAtlas(device: GraphicsDevice, images: HTMLImageElement[]): void {
+    console.log('[HeroSprite2D] Iniciando montagem do atlas com', images.length, 'imagens');
     const rowWidth = images[0].naturalWidth || images[0].width || 1024;
     const rowHeight = images[0].naturalHeight || images[0].height || 256;
+    console.log('[HeroSprite2D] Dimensão de cada linha:', rowWidth, 'x', rowHeight);
 
     const atlasCanvas = document.createElement('canvas');
     atlasCanvas.width = rowWidth;
     atlasCanvas.height = rowHeight * this.ROWS;
     const ctx = atlasCanvas.getContext('2d');
-    if (!ctx) return;
+    if (!ctx) { console.error('[HeroSprite2D] Sem contexto 2D do canvas!'); return; }
 
     for (let r = 0; r < this.ROWS; r++) {
       const img = images[r] || images[0];
       ctx.drawImage(img, 0, r * rowHeight, rowWidth, rowHeight);
     }
+    console.log('[HeroSprite2D] 8 linhas desenhadas no canvas do atlas');
 
     const imgData = ctx.getImageData(0, 0, atlasCanvas.width, atlasCanvas.height);
     const data = imgData.data;
@@ -150,9 +154,11 @@ export class HeroSprite2D implements IHeroVisual {
       }
     }
 
+    let transparentCount = 0;
     for (let i = 0; i < isBg.length; i++) {
-      if (isBg[i]) data[i * 4 + 3] = 0;
+      if (isBg[i]) { data[i * 4 + 3] = 0; transparentCount++; }
     }
+    console.log('[HeroSprite2D] Pixels tornados transparentes:', transparentCount, 'de', isBg.length, `(${((transparentCount / isBg.length) * 100).toFixed(1)}%)`);
     ctx.putImageData(imgData, 0, 0);
 
     const texture = new Texture(device, {
@@ -168,6 +174,7 @@ export class HeroSprite2D implements IHeroVisual {
     this.material.diffuseMap = texture;
     this.material.emissiveMap = texture;
     this.material.update();
+    console.log('[HeroSprite2D] Material atualizado. opacityMap presente?', !!this.material.opacityMap, '| blendType:', this.material.blendType);
 
     this.setFrame(this.currentCol >= 0 ? this.currentCol : 0, this.currentRow >= 0 ? this.currentRow : 0, this.currentFlipX);
   }
@@ -190,8 +197,6 @@ export class HeroSprite2D implements IHeroVisual {
 
     let row = 0;
     let col = 0;
-    // CORRIGIDO: a arte de perfil (linhas 3 e 6) olha pra ESQUERDA por padrão,
-    // então espelhamos quando o personagem olha pra DIREITA, não pra esquerda.
     let flipX = facing === 'right';
 
     switch (state) {
@@ -221,7 +226,6 @@ export class HeroSprite2D implements IHeroVisual {
 
       case 'attack':
       case 'heavy_attack': {
-        // stateTimer é CONTAGEM REGRESSIVA aqui — progresso = 1 - (restante / duração total)
         const maxDuration = state === 'heavy_attack' ? HEAVY_ATTACK_DURATION : ATTACK_DURATION;
         const progress = Math.min(0.99, Math.max(0, 1 - stateTimer / maxDuration));
         col = Math.min(2, Math.floor(progress * 3));
@@ -277,8 +281,6 @@ export class HeroSprite2D implements IHeroVisual {
       u1 = tmp;
     }
 
-    // Consistente com a malha base (createDynamicQuadMesh): base do boneco = V alto (v1),
-    // topo do boneco = V baixo (v0).
     const uvs = [
       u0, v1, // Bottom-Left
       u1, v1, // Bottom-Right
