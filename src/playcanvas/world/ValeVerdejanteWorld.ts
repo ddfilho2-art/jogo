@@ -75,6 +75,25 @@ export class ValeVerdejanteWorld {
     });
     this.rootEntity.addChild(groundEntity);
 
+    // 1b. Terreno Base: Cenário Pré-Composto HD do Setor Leste (768×512 em X = 768..1536)
+    // Continuação da floresta aberta além do rio, trilha leste e bacia meandrada
+    const groundLesteEntity = new Entity('Ground_ScenicMaster_Leste');
+    groundLesteEntity.setPosition(this.worldWidth + this.worldWidth * 0.5, this.worldHeight * 0.5, 0); // (1152, 256, 0)
+    const groundLesteMesh = createPixelQuadMesh(device, {
+      width: this.worldWidth,
+      height: this.worldHeight,
+      pivotX: 0.5,
+      pivotY: 0.5,
+    });
+    const groundLesteMat = createPixelMaterial({
+      diffuseMap: PlayCanvasAssets.getTexture('valeverdejante_leste_master_bg'),
+      transparent: false,
+    });
+    groundLesteEntity.addComponent('render', {
+      meshInstances: [new MeshInstance(groundLesteMesh, groundLesteMat)],
+    });
+    this.rootEntity.addChild(groundLesteEntity);
+
     // 2. Leito do Rio (X = 585) com fluxo dinâmico de água e ondulações cobrindo o canal (wX ~ 480..670)
     this.waterSystem = new WaterSystem(device, 585, 256, 175, 512);
     this.rootEntity.addChild(this.waterSystem.rootEntity);
@@ -198,6 +217,15 @@ export class ValeVerdejanteWorld {
       { x: 720, y: 370, type: 'med', id: 'Tree_E_1' },
       { x: 725, y: 120, type: 'small', id: 'Tree_E_2' },
       { x: 720, y: 55, type: 'large', id: 'Tree_E_S' },
+
+      // Setor Leste: Bosque mais aberto e clareiras amplas (X = 768..1536)
+      { x: 860, y: 430, type: 'med', id: 'Tree_Leste_N1' },
+      { x: 1040, y: 440, type: 'ancient', id: 'Tree_Leste_N2' },
+      { x: 1260, y: 420, type: 'med', id: 'Tree_Leste_N3' },
+      { x: 1440, y: 400, type: 'large', id: 'Tree_Leste_N4' },
+      { x: 920, y: 80, type: 'small', id: 'Tree_Leste_S1' },
+      { x: 1140, y: 70, type: 'med', id: 'Tree_Leste_S2' },
+      { x: 1380, y: 75, type: 'small', id: 'Tree_Leste_S3' },
     ];
 
     // 8. Bosque de Árvores Orgânicas (Validado estritamente por ScenarioSpatialMap)
@@ -226,6 +254,10 @@ export class ValeVerdejanteWorld {
       { x: 120, y: 320, id: 'Rock_Med_1', type: 'med' },
       { x: 420, y: 120, id: 'Rock_Cluster_1', type: 'cluster' },
       { x: 570, y: 140, id: 'Rock_Med_2', type: 'med' },
+      // Setor Leste
+      { x: 920, y: 340, id: 'Rock_Leste_1', type: 'large' },
+      { x: 1180, y: 160, id: 'Rock_Leste_2', type: 'cluster' },
+      { x: 1400, y: 330, id: 'Rock_Leste_3', type: 'med' },
     ];
     rocksData.forEach((r) => {
       const radius = r.type === 'large' ? 24 : r.type === 'cluster' ? 26 : 18;
@@ -243,6 +275,10 @@ export class ValeVerdejanteWorld {
       { x: 330, y: 150, id: 'Rock_Small_2' },
       { x: 550, y: 270, id: 'Rock_Small_3' },
       { x: 720, y: 220, id: 'Rock_Small_4' },
+      // Setor Leste
+      { x: 880, y: 350, id: 'Rock_Small_L1' },
+      { x: 1120, y: 140, id: 'Rock_Small_L2' },
+      { x: 1330, y: 310, id: 'Rock_Small_L3' },
     ];
     smallRocks.forEach((r) => {
       const validation = ScenarioSpatialMap.canPlaceRock(r.x, r.y, 10, placedRocks, placedTrees, true);
@@ -275,6 +311,11 @@ export class ValeVerdejanteWorld {
       { x: 460, y: 340 },
       { x: 520, y: 170 },
       { x: 570, y: 330 },
+      // Setor Leste
+      { x: 840, y: 320 },
+      { x: 1000, y: 175 },
+      { x: 1160, y: 345 },
+      { x: 1320, y: 180 },
     ];
     bushesData.forEach((b, idx) => {
       const validation = ScenarioSpatialMap.canPlaceFlora(b.x, b.y, 16, placedFlora);
@@ -302,6 +343,11 @@ export class ValeVerdejanteWorld {
       { x: 600, y: 200 },
       { x: 610, y: 270 },
       { x: 720, y: 250 },
+      // Setor Leste
+      { x: 960, y: 295 },
+      { x: 1080, y: 205 },
+      { x: 1220, y: 220 },
+      { x: 1360, y: 290 },
     ];
     flowersData.forEach((f, idx) => {
       const flower = new FlowerTuftEntity(device, f.x, f.y, `Flower_${idx}`);
@@ -319,6 +365,10 @@ export class ValeVerdejanteWorld {
       { x: 380, y: 415 },
       { x: 460, y: 410 },
       { x: 530, y: 80 },
+      // Setor Leste
+      { x: 1010, y: 405 },
+      { x: 1070, y: 415 },
+      { x: 1280, y: 110 },
     ];
     mushroomsData.forEach((m, idx) => {
       const shroom = new MushroomClusterEntity(device, m.x, m.y, `Mushroom_${idx}`);
@@ -349,11 +399,26 @@ export class ValeVerdejanteWorld {
       this.godrayEntities.push(gEnt);
     }
 
-    // 17. Paredes Perimetrais do Mundo (Limites de navegação)
+    // 17. Paredes Perimetrais do Mundo e Limites de Navegação dos Setores
+    // SETOR CENTRO:
+    // Limite Oeste, Norte e Sul
     collision.addCollider({ id: 'bound_left', x: 10, y: 256, width: 20, height: 512 });
-    collision.addCollider({ id: 'bound_right', x: 758, y: 256, width: 20, height: 512 });
     collision.addCollider({ id: 'bound_bottom', x: 384, y: 10, width: 768, height: 20 });
     collision.addCollider({ id: 'bound_top', x: 384, y: 502, width: 768, height: 20 });
+
+    // Limite Leste do Setor Centro: Dividido para deixar a trilha (Y = 226..284) totalmente LIVRE!
+    collision.addCollider({ id: 'bound_centro_right_north', x: 758, y: 398, width: 20, height: 228 });
+    collision.addCollider({ id: 'bound_centro_right_south', x: 758, y: 113, width: 20, height: 226 });
+
+    // SETOR LESTE:
+    // Limite Oeste do Setor Leste: Espelha a abertura da trilha (Y = 226..284) para passagem contínua
+    collision.addCollider({ id: 'bound_leste_left_north', x: 778, y: 398, width: 20, height: 228 });
+    collision.addCollider({ id: 'bound_leste_left_south', x: 778, y: 113, width: 20, height: 226 });
+
+    // Limites Perimetrais Norte, Sul e Leste do Setor Leste
+    collision.addCollider({ id: 'bound_leste_bottom', x: 1152, y: 10, width: 768, height: 20 });
+    collision.addCollider({ id: 'bound_leste_top', x: 1152, y: 502, width: 768, height: 20 });
+    collision.addCollider({ id: 'bound_leste_right', x: 1526, y: 256, width: 20, height: 512 });
   }
 
   /**

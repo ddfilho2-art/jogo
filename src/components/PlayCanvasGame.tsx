@@ -48,6 +48,8 @@ export const PlayCanvasGame: React.FC<PlayCanvasGameProps> = ({ onSwitchToPhaser
     y: number;
     z?: number;
     depthZ?: number;
+    sectorId?: string;
+    sectorName?: string;
     prototype?: 'A' | 'B' | 'C';
     visible?: boolean;
     rootEnabled?: boolean;
@@ -65,6 +67,8 @@ export const PlayCanvasGame: React.FC<PlayCanvasGameProps> = ({ onSwitchToPhaser
     y: 220,
     z: 10,
     depthZ: 10,
+    sectorId: 'vale_verdejante_centro',
+    sectorName: 'Vale Verdejante - Clareira Central',
     prototype: 'B',
     visible: true,
     rootEnabled: true,
@@ -237,7 +241,7 @@ export const PlayCanvasGame: React.FC<PlayCanvasGameProps> = ({ onSwitchToPhaser
         <div className="flex items-center gap-4">
           <div className="hidden md:flex items-center gap-1.5 text-emerald-400">
             <Compass className="w-3.5 h-3.5" />
-            <span className="text-[11px] font-bold">Vale Verdejante (PlayCanvas V2)</span>
+            <span className="text-[11px] font-bold">{spatialInfo.sectorName || 'Vale Verdejante (PlayCanvas V2)'}</span>
           </div>
 
           <div className="flex items-center gap-1 text-amber-300 font-bold">
@@ -301,6 +305,11 @@ export const PlayCanvasGame: React.FC<PlayCanvasGameProps> = ({ onSwitchToPhaser
 
             {/* Badge Semântico Espacial em Tempo Real */}
             <div className="flex items-center gap-2 px-2.5 py-1 bg-black/85 backdrop-blur-md border border-amber-500/40 rounded shadow-lg text-[10px] font-mono pointer-events-auto">
+              <div className="flex items-center gap-1 text-cyan-300">
+                <span className="font-bold">SETOR:</span>
+                <span className="text-cyan-200">{spatialInfo.sectorId === 'vale_verdejante_leste' ? 'LESTE' : 'CENTRO'}</span>
+              </div>
+              <span className="text-slate-600">|</span>
               <div className="flex items-center gap-1 text-amber-300">
                 <MapPin className="w-3 h-3 text-amber-400" />
                 <span className="font-bold">BIOMA:</span>

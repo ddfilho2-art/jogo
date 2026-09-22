@@ -72,9 +72,12 @@ export class PlayCanvasAssets {
     // 8. Elementos Ricos e Vida do Vale Verdejante (Flores, Troncos, Ponte, Cogumelos, Vagalumes)
     this.gerarElementosDoVale(device);
 
-    // 9. Cenário Pré-Composto HD do Vale Verdejante (Camada Base de Fundo)
-    console.log('[PlayCanvasAssets.init] Gerando composição pictórica HD do Vale Verdejante (768×512)...');
+    // 9. Cenário Pré-Composto HD do Vale Verdejante (Camadas Base de Fundo - Centro e Leste)
+    console.log('[PlayCanvasAssets.init] Gerando composição pictórica HD do Vale Verdejante Centro (768×512)...');
     this.textures.set('valeverdejante_master_bg', ScenicValeBackground.generateMasterBackground(device));
+
+    console.log('[PlayCanvasAssets.init] Gerando composição pictórica HD do Vale Verdejante Leste (768×512)...');
+    this.textures.set('valeverdejante_leste_master_bg', ScenicValeBackground.generateLesteBackground(device));
   }
 
   static registerMaterial(mat: StandardMaterial): StandardMaterial {

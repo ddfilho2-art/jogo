@@ -66,7 +66,10 @@ export interface SemanticRegionDefinition {
 }
 
 export class ScenarioSpatialMap {
-  public static readonly WORLD_WIDTH = 768;
+  public static readonly SECTOR_WIDTH = 768;
+  public static readonly SECTOR_HEIGHT = 512;
+  public static readonly TOTAL_WORLD_WIDTH = 1536;
+  public static readonly WORLD_WIDTH = 768; // Mantido para compatibilidade
   public static readonly WORLD_HEIGHT = 512;
 
   // ===========================================================================
@@ -176,9 +179,33 @@ export class ScenarioSpatialMap {
       name: 'Escarpas Rochosas Perimetrais',
       biome: BiomeType.CLIFF,
       description: 'Elevações rochosas nas bordas montanhosas',
-      contains: (x, y) => y >= 490 || x <= 22 || (x >= 740 && y <= 100),
+      contains: (x, y) => y >= 490 || x <= 22 || (x >= 740 && x <= 768 && y <= 100) || x >= 1515,
     },
-    // 7. Planície Central e Clareiras
+    // 7. Bosque Alto Oriental (Setor Leste)
+    {
+      id: 'leste_north_canopy',
+      name: 'Bosque Alto Oriental',
+      biome: BiomeType.FOREST,
+      description: 'Mata aberta de carvalhos e vegetação ensolarada além do rio',
+      contains: (x, y) => x >= 768 && y >= 370,
+    },
+    // 8. Meandros Baixos do Vale (Setor Leste)
+    {
+      id: 'leste_south_wetland',
+      name: 'Meandros Baixos do Vale',
+      biome: BiomeType.RIVERBANK,
+      description: 'Solo aluvial e áreas úmidas na bacia de transição do rio',
+      contains: (x, y) => x >= 768 && y <= 150,
+    },
+    // 9. Clareira Oriental do Vale (Setor Leste)
+    {
+      id: 'leste_central_glade',
+      name: 'Clareira Oriental do Vale',
+      biome: BiomeType.FIELD,
+      description: 'Planície aberta e iluminada além da ponte do rio',
+      contains: (x) => x >= 768,
+    },
+    // 10. Planície Central e Clareiras (Setor Centro)
     {
       id: 'central_glade',
       name: 'Prado Central Ensolarado',
@@ -228,8 +255,18 @@ export class ScenarioSpatialMap {
     }
 
     // 4. Passagem da Trilha além da Ponte na Margem Leste (X = 680..768)
-    if (x >= 680 && x <= 768 && Math.abs(y - 250) <= (30 + buffer)) {
+    if (x >= 680 && x <= 768 && Math.abs(y - 254) <= (30 + buffer)) {
       return true;
+    }
+
+    // 5. Continuação da Trilha no Setor Leste (X = 768..1536)
+    if (x > 768 && x <= 1536) {
+      const offsetX = x - 768;
+      const centerY = 254 + Math.sin(offsetX * 0.007) * 12 + Math.cos(offsetX * 0.015) * 5;
+      const halfW = 28 + Math.sin(offsetX * 0.02) * 5 + buffer;
+      if (Math.abs(y - centerY) <= halfW) {
+        return true;
+      }
     }
 
     return false;
@@ -302,8 +339,13 @@ export class ScenarioSpatialMap {
    * Hierarquia: FIXED_OBJECT > FORBIDDEN_AREA > RIVER > PATH > PLAYABLE_AREA > DECORATION_ALLOWED
    */
   public static getSpecialZone(x: number, y: number): SpecialZoneType {
-    // 1. Tablado da Ponte Transitável (X = 478..692, Y = 234..275) sobre o Rio: PATH prioritário de circulação
+    // 1. Tablado da Ponte Transitável (X = 478..692, Y = 234..275) sobre o Rio
     if (x >= 478 && x <= 692 && y >= 234 && y <= 275) {
+      return SpecialZoneType.PATH;
+    }
+
+    // Passagem da Fronteira entre Setores (X = 748..788, Y = 226..284)
+    if (x >= 748 && x <= 788 && y >= 226 && y <= 284) {
       return SpecialZoneType.PATH;
     }
 
@@ -312,8 +354,13 @@ export class ScenarioSpatialMap {
       return SpecialZoneType.FIXED_OBJECT;
     }
 
-    // 3. Bordas e limites do mundo
-    if (x < 15 || x > this.WORLD_WIDTH - 15 || y < 15 || y > this.WORLD_HEIGHT - 15) {
+    // 3. Bordas e limites do mundo (cobrindo a totalidade dos setores conectados)
+    if (x < 15 || x > this.TOTAL_WORLD_WIDTH - 15 || y < 15 || y > this.SECTOR_HEIGHT - 15) {
+      return SpecialZoneType.FORBIDDEN_AREA;
+    }
+
+    // Borda intermediária entre os setores fora da passagem da trilha
+    if (x >= 758 && x <= 778 && (y < 226 || y > 284)) {
       return SpecialZoneType.FORBIDDEN_AREA;
     }
 
@@ -439,7 +486,7 @@ export class ScenarioSpatialMap {
     existingTrees: Array<{ x: number; y: number; radius: number }>
   ): { allowed: boolean; reason?: string } {
     // 1. Limites do mapa
-    if (x < 30 || x > this.WORLD_WIDTH - 30 || y < 30 || y > this.WORLD_HEIGHT - 30) {
+    if (x < 30 || x > this.TOTAL_WORLD_WIDTH - 30 || y < 30 || y > this.SECTOR_HEIGHT - 30) {
       return { allowed: false, reason: 'Fora dos limites seguros do mapa' };
     }
 
@@ -491,7 +538,7 @@ export class ScenarioSpatialMap {
     existingTrees: Array<{ x: number; y: number; radius: number }>,
     isSmall = false
   ): { allowed: boolean; reason?: string } {
-    if (x < 25 || x > this.WORLD_WIDTH - 25 || y < 25 || y > this.WORLD_HEIGHT - 25) {
+    if (x < 25 || x > this.TOTAL_WORLD_WIDTH - 25 || y < 25 || y > this.SECTOR_HEIGHT - 25) {
       return { allowed: false, reason: 'Fora dos limites do mapa' };
     }
 
@@ -546,7 +593,7 @@ export class ScenarioSpatialMap {
     floraRadius: number,
     existingFlora: Array<{ x: number; y: number; radius: number }>
   ): { allowed: boolean; reason?: string } {
-    if (x < 20 || x > this.WORLD_WIDTH - 20 || y < 20 || y > this.WORLD_HEIGHT - 20) {
+    if (x < 20 || x > this.TOTAL_WORLD_WIDTH - 20 || y < 20 || y > this.SECTOR_HEIGHT - 20) {
       return { allowed: false, reason: 'Fora dos limites do mapa' };
     }
 

@@ -11,6 +11,7 @@ import { PlayCanvasParticles } from '../environment/PlayCanvasParticles';
 import { LightingEnvironment } from '../environment/LightingEnvironment';
 import { PlayCanvasAssets } from '../assets/PlayCanvasAssets';
 import { ScenarioSpatialMap } from '../world/ScenarioSpatialMap';
+import { WorldSectorManager } from '../world/WorldSectorManager';
 import { eventBus } from '../../phaser/eventBus';
 
 // =============================================================================
@@ -41,6 +42,7 @@ export class MainScene {
   public combatTarget: CombatTargetEntity;
   public particles: PlayCanvasParticles;
   public lighting: LightingEnvironment;
+  public sectorManager: WorldSectorManager;
 
   private totalTime = 0;
   public isDiagnosticModeActive = false;
@@ -76,7 +78,7 @@ export class MainScene {
     this.app.root.addChild(this.cameraEntity);
 
     this.cameraSystem = new CameraFollowSystem(this.cameraEntity);
-    this.cameraSystem.setBounds(320, 448, 180, 332);
+    this.sectorManager = new WorldSectorManager(this.cameraSystem);
 
     // 4. Constrói o Mundo
     this.world = new ValeVerdejanteWorld(this.device, this.collisionSystem);
@@ -194,7 +196,8 @@ export class MainScene {
     // 7. Atualiza Iluminação
     this.lighting.update(this.ren.x, this.ren.y, this.ren.state === 'heavy_attack' || this.ren.state === 'arcane_flow');
 
-    // 8. Câmera acompanha Ren suavemente
+    // 8. Setor e Câmera acompanham Ren suavemente
+    this.sectorManager.update(this.ren.x, this.ren.y);
     this.cameraSystem.update(dt);
 
     // 9. Ordenação 2.5D de profundidade
@@ -208,6 +211,8 @@ export class MainScene {
       y: Math.round(this.ren.y),
       z: Number(pos.z.toFixed(3)),
       depthZ: Number(pos.z.toFixed(3)),
+      sectorId: this.sectorManager.getActiveSectorId(),
+      sectorName: this.sectorManager.getActiveSectorName(),
       biome: sem.biome,
       zone: sem.specialZone,
       priorityLevel: sem.priorityLevel,
