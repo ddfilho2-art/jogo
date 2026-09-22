@@ -18,6 +18,8 @@
 // =============================================================================
 
 import {
+  BLEND_NORMAL,
+  Color,
   Entity,
   GraphicsDevice,
   Mesh,
@@ -33,10 +35,10 @@ import {
   createPixelTexture,
 } from '../rendering/GraphicsBackend';
 
-import row0Url from '../../assets/images/ren_chibi_row0_idle_1789858442413.jpg';
+import row0Url from '../../assets/images/ren_chibi_row0_idle.png';
 import row1Url from '../../assets/images/ren_chibi_row1_walk_down_1789858720240.jpg';
 import row2Url from '../../assets/images/ren_chibi_row2_walk_up_1789858788226.jpg';
-import row3Url from '../../assets/images/ren_chibi_row3_walk_side_1789858832575.jpg';
+import row3Url from '../../assets/images/ren_chibi_row3_walk_side.png';
 import row4Url from '../../assets/images/ren_chibi_row4_jump_1789859798672.jpg';
 import row5Url from '../../assets/images/ren_chibi_row5_attack_down_1789859809465.jpg';
 import row6Url from '../../assets/images/ren_chibi_row6_attack_side_1789859821420.jpg';
@@ -71,6 +73,168 @@ interface AnimationDefinition {
   fps: number;
   loop: boolean;
 }
+
+// -----------------------------------------------------------------------------
+// Estrutura de Coordenadas UV por Frame
+// -----------------------------------------------------------------------------
+
+/**
+ * Coordenadas UV explícitas no atlas heterogêneo de alta fidelidade (1408 x 5888).
+ * Elimina completamente divisões presumidas (col / 4, row / 8) e garante que
+ * cada frame aponte rigorosamente para seus pixels nativos.
+ */
+interface FrameUV {
+  u0: number;
+  u1: number;
+  v0: number;
+  v1: number;
+}
+
+/**
+ * Dimensões físicas totais do atlas nativo unificado:
+ * Largura: 1408 px
+ * Altura:  5888 px (512 px na Linha 0 + 7 * 768 px nas Linhas 1 a 7)
+ */
+const ATLAS_WIDTH = 1408;
+const ATLAS_HEIGHT = 5888;
+
+/**
+ * Especificações físicas nativas de cada linha no atlas.
+ * ROW0: 1024 x 512 nativo (4 frames de 256 x 512), desenhado em (0, 0) sem distorção.
+ * ROW1 a 7: 1408 x 768 nativo (4 frames de 352 x 768), desenhados em (0, yOffset) 1:1 sem distorção.
+ */
+interface RowLayoutSpec {
+  yOffset: number;
+  frameWidth: number;
+  frameHeight: number;
+  imageWidth: number;
+  imageHeight: number;
+}
+
+const ROW_LAYOUTS: RowLayoutSpec[] = [
+  { yOffset: 0, frameWidth: 256, frameHeight: 512, imageWidth: 1024, imageHeight: 512 },      // ROW 0: Idle
+  { yOffset: 512, frameWidth: 352, frameHeight: 768, imageWidth: 1408, imageHeight: 768 },    // ROW 1: Walk Down
+  { yOffset: 1280, frameWidth: 352, frameHeight: 768, imageWidth: 1408, imageHeight: 768 },   // ROW 2: Walk Up
+  { yOffset: 2048, frameWidth: 352, frameHeight: 768, imageWidth: 1408, imageHeight: 768 },   // ROW 3: Walk Side
+  { yOffset: 2816, frameWidth: 352, frameHeight: 768, imageWidth: 1408, imageHeight: 768 },   // ROW 4: Jump / Fall
+  { yOffset: 3584, frameWidth: 352, frameHeight: 768, imageWidth: 1408, imageHeight: 768 },   // ROW 5: Attack Down
+  { yOffset: 4352, frameWidth: 352, frameHeight: 768, imageWidth: 1408, imageHeight: 768 },   // ROW 6: Attack Side
+  { yOffset: 5120, frameWidth: 352, frameHeight: 768, imageWidth: 1408, imageHeight: 768 },   // ROW 7: Magic Arcane
+];
+
+/**
+ * Tabela de coordenadas UV pré-calculadas a partir dos pixels físicos reais do atlas.
+ */
+const FRAME_UVS: FrameUV[][] = ROW_LAYOUTS.map((spec) => {
+  const rowUVs: FrameUV[] = [];
+  for (let col = 0; col < 4; col++) {
+    const px0 = col * spec.frameWidth;
+    const px1 = px0 + spec.frameWidth;
+    const py0 = spec.yOffset;
+    const py1 = py0 + spec.frameHeight;
+
+    rowUVs.push({
+      u0: px0 / ATLAS_WIDTH,
+      u1: px1 / ATLAS_WIDTH,
+      v0: py0 / ATLAS_HEIGHT,
+      v1: py1 / ATLAS_HEIGHT,
+    });
+  }
+  return rowUVs;
+});
+
+// -----------------------------------------------------------------------------
+// Estrutura de Normalização Visual por Frame
+// -----------------------------------------------------------------------------
+
+/**
+ * Normalização visual por frame / linha baseada nos bounds reais da arte nativa.
+ *
+ * Garante:
+ * 1. Mesma escala corporal do herói em todas as direções (referência: Idle Row 0);
+ * 2. Apoio dos pés no mesmo Y do mundo (-3.026875), eliminando saltos ou flutuação;
+ * 3. Centro de massa horizontal alinhado com o eixo do herói e da sombra (X = 0);
+ * 4. Preservação do flip horizontal sem deslocamentos ou distorções.
+ */
+interface FrameMetrics {
+  visualWidth: number;
+  visualHeight: number;
+  pivotX: number;
+  pivotY: number;
+  feetOffsetY: number;
+}
+
+/**
+ * Ponto de apoio fundamental dos pés no mundo 2.5D (definido pelo Idle de referência).
+ */
+const REF_GROUND_Y = -3.026875;
+
+/**
+ * Tabela explícita de métricas visuais normalizadas para todas as 8 linhas e 4 frames.
+ * Valores derivados da medição analítica dos bounds reais do personagem em seus frames nativos:
+ * - ROW 0 (Idle): frame 256x512, visualWidth 36.0, visualHeight 58.0.
+ * - ROW 1 a 7: frame 352x768 nativo.
+ *   Com as proporções nativas preservadas, visualHeight = 72.64 e visualWidth = 43.40 (para ROW 1, 2 e 4-7)
+ *   e visualHeight = 76.50 e visualWidth = 45.70 (para ROW 3) igualam perfeitamente a escala do herói ao Idle.
+ */
+const FRAME_METRICS: FrameMetrics[][] = [
+  // ROW 0: Idle (Referência mestra - ren_chibi_row0_idle.png, frame 256x512)
+  [
+    { visualWidth: 36.0, visualHeight: 58.0, pivotX: 128.0 / 256, pivotY: 508 / 512, feetOffsetY: 0 },
+    { visualWidth: 36.0, visualHeight: 58.0, pivotX: 128.0 / 256, pivotY: 508 / 512, feetOffsetY: 0 },
+    { visualWidth: 36.0, visualHeight: 58.0, pivotX: 128.0 / 256, pivotY: 508 / 512, feetOffsetY: 0 },
+    { visualWidth: 36.0, visualHeight: 58.0, pivotX: 128.0 / 256, pivotY: 508 / 512, feetOffsetY: 0 },
+  ],
+  // ROW 1: Walk Down (ren_chibi_row1_walk_down, frame 352x768 nativo)
+  [
+    { visualWidth: 43.40, visualHeight: 72.64, pivotX: 190.0 / 352, pivotY: 684 / 768, feetOffsetY: 0 },
+    { visualWidth: 43.40, visualHeight: 72.64, pivotX: 174.8 / 352, pivotY: 684 / 768, feetOffsetY: 0 },
+    { visualWidth: 43.40, visualHeight: 72.64, pivotX: 156.4 / 352, pivotY: 684 / 768, feetOffsetY: 0 },
+    { visualWidth: 43.40, visualHeight: 72.64, pivotX: 143.8 / 352, pivotY: 684 / 768, feetOffsetY: 0 },
+  ],
+  // ROW 2: Walk Up (ren_chibi_row2_walk_up, frame 352x768 nativo)
+  [
+    { visualWidth: 43.40, visualHeight: 72.64, pivotX: 198.2 / 352, pivotY: 691 / 768, feetOffsetY: 0 },
+    { visualWidth: 43.40, visualHeight: 72.64, pivotX: 178.9 / 352, pivotY: 691 / 768, feetOffsetY: 0 },
+    { visualWidth: 43.40, visualHeight: 72.64, pivotX: 168.2 / 352, pivotY: 691 / 768, feetOffsetY: 0 },
+    { visualWidth: 43.40, visualHeight: 72.64, pivotX: 155.5 / 352, pivotY: 691 / 768, feetOffsetY: 0 },
+  ],
+  // ROW 3: Walk Side (ren_chibi_row3_walk_side.png, frame 352x768 nativo)
+  [
+    { visualWidth: 45.70, visualHeight: 76.50, pivotX: 176.0 / 352, pivotY: 668 / 768, feetOffsetY: 0 },
+    { visualWidth: 45.70, visualHeight: 76.50, pivotX: 176.0 / 352, pivotY: 668 / 768, feetOffsetY: 0 },
+    { visualWidth: 45.70, visualHeight: 76.50, pivotX: 176.0 / 352, pivotY: 668 / 768, feetOffsetY: 0 },
+    { visualWidth: 45.70, visualHeight: 76.50, pivotX: 176.0 / 352, pivotY: 668 / 768, feetOffsetY: 0 },
+  ],
+  // ROW 4: Jump / Fall (ren_chibi_row4_jump, frame 352x768 nativo)
+  [
+    { visualWidth: 43.40, visualHeight: 72.64, pivotX: 204.7 / 352, pivotY: 646 / 768, feetOffsetY: 0 },
+    { visualWidth: 43.40, visualHeight: 72.64, pivotX: 186.5 / 352, pivotY: 646 / 768, feetOffsetY: 0 },
+    { visualWidth: 43.40, visualHeight: 72.64, pivotX: 187.6 / 352, pivotY: 646 / 768, feetOffsetY: 0 },
+    { visualWidth: 43.40, visualHeight: 72.64, pivotX: 176.0 / 352, pivotY: 646 / 768, feetOffsetY: 0 },
+  ],
+  // ROW 5: Attack Down (ren_chibi_row5_attack_down, frame 352x768 nativo)
+  [
+    { visualWidth: 43.40, visualHeight: 72.64, pivotX: 222.8 / 352, pivotY: 635 / 768, feetOffsetY: 0 },
+    { visualWidth: 43.40, visualHeight: 72.64, pivotX: 188.3 / 352, pivotY: 635 / 768, feetOffsetY: 0 },
+    { visualWidth: 43.40, visualHeight: 72.64, pivotX: 166.8 / 352, pivotY: 635 / 768, feetOffsetY: 0 },
+    { visualWidth: 43.40, visualHeight: 72.64, pivotX: 176.0 / 352, pivotY: 635 / 768, feetOffsetY: 0 },
+  ],
+  // ROW 6: Attack Side (ren_chibi_row6_attack_side, frame 352x768 nativo)
+  [
+    { visualWidth: 43.40, visualHeight: 72.64, pivotX: 215.2 / 352, pivotY: 587 / 768, feetOffsetY: 0 },
+    { visualWidth: 43.40, visualHeight: 72.64, pivotX: 211.2 / 352, pivotY: 587 / 768, feetOffsetY: 0 },
+    { visualWidth: 43.40, visualHeight: 72.64, pivotX: 167.7 / 352, pivotY: 587 / 768, feetOffsetY: 0 },
+    { visualWidth: 43.40, visualHeight: 72.64, pivotX: 176.0 / 352, pivotY: 587 / 768, feetOffsetY: 0 },
+  ],
+  // ROW 7: Magic Arcane (ren_chibi_row7_magic_arcane, frame 352x768 nativo)
+  [
+    { visualWidth: 43.40, visualHeight: 72.64, pivotX: 200.4 / 352, pivotY: 653 / 768, feetOffsetY: 0 },
+    { visualWidth: 43.40, visualHeight: 72.64, pivotX: 177.9 / 352, pivotY: 653 / 768, feetOffsetY: 0 },
+    { visualWidth: 43.40, visualHeight: 72.64, pivotX: 164.8 / 352, pivotY: 653 / 768, feetOffsetY: 0 },
+    { visualWidth: 43.40, visualHeight: 72.64, pivotX: 176.0 / 352, pivotY: 653 / 768, feetOffsetY: 0 },
+  ],
+];
 
 const ANIMATIONS: Record<string, AnimationDefinition> = {
   idle: {
@@ -244,41 +408,25 @@ export class HeroSprite2D implements IHeroVisual {
     images: HTMLImageElement[]
   ): void {
     console.log(
-      '[HeroSprite2D] Iniciando montagem do atlas com',
+      '[HeroSprite2D] Iniciando montagem do atlas nativo unificado com',
       images.length,
-      'imagens'
-    );
-
-    const rowWidth =
-      images[0].naturalWidth ||
-      images[0].width ||
-      1024;
-
-    const rowHeight =
-      images[0].naturalHeight ||
-      images[0].height ||
-      256;
-
-    console.log(
-      '[HeroSprite2D] Dimensão de cada linha:',
-      rowWidth,
-      'x',
-      rowHeight
+      'imagens.'
     );
 
     // -------------------------------------------------------------------------
-    // Canvas final:
+    // Canvas final nativo unificado:
     //
-    // largura  = largura de uma linha
-    // altura   = altura da linha x 8
+    // Largura = 1408 px (largura nativa das linhas de alta resolução 1 a 7)
+    // Altura  = 5888 px (512 px na Linha 0 + 7 * 768 px nas Linhas 1 a 7)
     //
-    // Cada linha contém 4 frames.
+    // Cada asset é desenhado em suas dimensões físicas ORIGINAIS 1:1,
+    // eliminando qualquer compressão, deformação ou achatamento anisotrópico.
     // -------------------------------------------------------------------------
 
     const atlasCanvas = document.createElement('canvas');
 
-    atlasCanvas.width = rowWidth;
-    atlasCanvas.height = rowHeight * this.ROWS;
+    atlasCanvas.width = ATLAS_WIDTH;
+    atlasCanvas.height = ATLAS_HEIGHT;
 
     const ctx = atlasCanvas.getContext('2d');
 
@@ -291,36 +439,48 @@ export class HeroSprite2D implements IHeroVisual {
     }
 
     // -------------------------------------------------------------------------
-    // Desenha todas as linhas no atlas.
+    // Limpa o canvas com transparência total antes de desenhar.
+    // -------------------------------------------------------------------------
+    ctx.clearRect(0, 0, ATLAS_WIDTH, ATLAS_HEIGHT);
+
+    // -------------------------------------------------------------------------
+    // Desenha cada linha no atlas com suas dimensões físicas nativas 1:1.
+    //
+    // - Linha 0 (Idle): 1024 x 512 nativo em (0, 0).
+    //   Os pixels excedentes à direita (X: 1024 a 1408) permanecem transparentes.
+    // - Linhas 1 a 7: 1408 x 768 nativo em (0, yOffset).
+    //   Preserva integralmente a proporção nativa de 1408 / 768 = 1.833333...
     // -------------------------------------------------------------------------
 
     for (let row = 0; row < this.ROWS; row++) {
       const img = images[row] || images[0];
+      const layout = ROW_LAYOUTS[row];
 
       ctx.drawImage(
         img,
         0,
-        row * rowHeight,
-        rowWidth,
-        rowHeight
+        layout.yOffset,
+        layout.imageWidth,
+        layout.imageHeight
       );
     }
 
     console.log(
-      '[HeroSprite2D] 8 linhas desenhadas no canvas do atlas'
+      `[HeroSprite2D] Atlas 1:1 desenhado com sucesso (${ATLAS_WIDTH}x${ATLAS_HEIGHT} px).`
     );
 
     // =========================================================================
-    // REMOÇÃO DO FUNDO BRANCO
+    // REMOÇÃO DO FUNDO BRANCO (SOMENTE LINHAS 1 A 7 - JPEGs)
     // =========================================================================
     //
-    // As imagens atuais são JPEG, portanto não possuem canal alpha.
+    // A Linha 0 utiliza PNG nativo com canal alpha real já embutido.
+    // Portando NÃO é aplicado flood-fill ou chroma key na Linha 0 (y < 512).
     //
-    // Mantemos a remoção do fundo por flood-fill, mas somente para regiões
-    // brancas conectadas às bordas.
-    //
-    // Isso evita transformar branco existente dentro do personagem em alpha.
+    // O flood-fill é estritamente restrito às Linhas 1 a 7 (y >= 512),
+    // preservando o alpha original do PNG de Idle na íntegra.
     // =========================================================================
+
+    const startY = ROW_LAYOUTS[1].yOffset; // 512 px
 
     const imgData = ctx.getImageData(
       0,
@@ -352,13 +512,13 @@ export class HeroSprite2D implements IHeroVisual {
     };
 
     // -------------------------------------------------------------------------
-    // Sementes nas bordas
+    // Sementes nas bordas das linhas 1 a 7 (apenas imagens JPEG)
     // -------------------------------------------------------------------------
 
     for (let x = 0; x < w; x++) {
-      if (isWhite(x, 0)) {
-        isBackground[x] = 1;
-        queue.push(x, 0);
+      if (isWhite(x, startY)) {
+        isBackground[startY * w + x] = 1;
+        queue.push(x, startY);
       }
 
       if (isWhite(x, h - 1)) {
@@ -367,7 +527,7 @@ export class HeroSprite2D implements IHeroVisual {
       }
     }
 
-    for (let y = 0; y < h; y++) {
+    for (let y = startY; y < h; y++) {
       if (isWhite(0, y)) {
         isBackground[y * w] = 1;
         queue.push(0, y);
@@ -380,7 +540,7 @@ export class HeroSprite2D implements IHeroVisual {
     }
 
     // -------------------------------------------------------------------------
-    // Flood-fill
+    // Flood-fill (restrito a y >= startY)
     // -------------------------------------------------------------------------
 
     let head = 0;
@@ -402,7 +562,7 @@ export class HeroSprite2D implements IHeroVisual {
         if (
           nx >= 0 &&
           nx < w &&
-          ny >= 0 &&
+          ny >= startY &&
           ny < h
         ) {
           const index = ny * w + nx;
@@ -420,12 +580,12 @@ export class HeroSprite2D implements IHeroVisual {
     }
 
     // -------------------------------------------------------------------------
-    // Aplica alpha = 0 ao fundo detectado.
+    // Aplica alpha = 0 ao fundo detectado nas linhas 1 a 7.
     // -------------------------------------------------------------------------
 
     let transparentCount = 0;
 
-    for (let i = 0; i < isBackground.length; i++) {
+    for (let i = startY * w; i < isBackground.length; i++) {
       if (isBackground[i]) {
         data[i * 4 + 3] = 0;
         transparentCount++;
@@ -433,14 +593,10 @@ export class HeroSprite2D implements IHeroVisual {
     }
 
     console.log(
-      '[HeroSprite2D] Pixels tornados transparentes:',
+      '[HeroSprite2D] Pixels das linhas 1-7 tornados transparentes:',
       transparentCount,
       'de',
-      isBackground.length,
-      `(${(
-        (transparentCount / isBackground.length) *
-        100
-      ).toFixed(1)}%)`
+      isBackground.length - startY * w
     );
 
     ctx.putImageData(imgData, 0, 0);
@@ -473,9 +629,13 @@ export class HeroSprite2D implements IHeroVisual {
 
     this.material.diffuseMap = texture;
     this.material.emissiveMap = texture;
+    this.material.emissive = new Color(1, 1, 1);
 
     this.material.opacityMap = texture;
     this.material.opacityMapChannel = 'a';
+    this.material.blendType = BLEND_NORMAL;
+    this.material.alphaTest = 0.05;
+    this.material.depthWrite = false;
 
     // Garantia adicional de que os três mapas utilizem exatamente o mesmo UV.
     this.material.opacityMapTiling.copy(
@@ -495,6 +655,8 @@ export class HeroSprite2D implements IHeroVisual {
     );
 
     this.material.update();
+
+    this.meshInstance.material = this.material;
 
     console.log(
       '[HeroSprite2D] Atlas criado.',
@@ -914,11 +1076,17 @@ export class HeroSprite2D implements IHeroVisual {
     row: number,
     flipX: boolean
   ): void {
-    let u0 = col / this.COLS;
-    let u1 = (col + 1) / this.COLS;
+    // -------------------------------------------------------------------------
+    // Coordenadas UV explícitas baseadas nas dimensões físicas reais do atlas.
+    // Preserva a resolução nativa de cada linha sem distorção.
+    // -------------------------------------------------------------------------
+    const rowUVs = FRAME_UVS[row] || FRAME_UVS[0];
+    const frameUV = rowUVs[col] || rowUVs[0];
 
-    const v0 = row / this.ROWS;
-    const v1 = (row + 1) / this.ROWS;
+    let u0 = frameUV.u0;
+    let u1 = frameUV.u1;
+    const v0 = frameUV.v0;
+    const v1 = frameUV.v1;
 
     // -------------------------------------------------------------------------
     // Espelhamento horizontal.
@@ -940,6 +1108,36 @@ export class HeroSprite2D implements IHeroVisual {
       u0, v0, // Top-Left
     ];
 
+    // -------------------------------------------------------------------------
+    // Normalização geométrica do Quad por frame
+    //
+    // Alinha os pés rigorosamente na linha de apoio do mundo (REF_GROUND_Y),
+    // equaliza a escala corporal com o Idle mestre e centraliza o eixo de massa.
+    // -------------------------------------------------------------------------
+    const rowMetrics = FRAME_METRICS[row] || FRAME_METRICS[0];
+    const metrics = rowMetrics[col] || rowMetrics[0];
+
+    const left = flipX
+      ? -((1 - metrics.pivotX) * metrics.visualWidth)
+      : -(metrics.pivotX * metrics.visualWidth);
+
+    const right = left + metrics.visualWidth;
+
+    const bottom =
+      REF_GROUND_Y -
+      (1 - metrics.pivotY) * metrics.visualHeight +
+      metrics.feetOffsetY;
+
+    const top = bottom + metrics.visualHeight;
+
+    const positions = [
+      left, bottom, 0,
+      right, bottom, 0,
+      right, top, 0,
+      left, top, 0,
+    ];
+
+    this.mesh.setPositions(positions);
     this.mesh.setUvs(
       0,
       uvs
