@@ -6,20 +6,20 @@ import valeVerdejanteMasterUrl from '../../assets/images/vale_verdejante_master_
 // ELDRIM: ECOS DO PASSADO - SCENIC VALE BACKGROUND (PLAYCANVAS ENGINE V2)
 // =============================================================================
 // NOVO MAPA-MESTRE UNIFICADO DO VALE VERDEJANTE:
-// - Fonte visual única e integral de verdade para todo o território (1376×768)
+// - Fonte visual única e integral de verdade para todo o território (2048×1152)
 // - Pintura artística completa sem fatiamento, sem stitching, sem módulos separados
 // - Renderizada diretamente na GPU sem interpolação destrutiva ou crop arbitrário
 // =============================================================================
 
 export class ScenicValeBackground {
-  public static readonly WORLD_WIDTH = 1376;
-  public static readonly WORLD_HEIGHT = 768;
+  public static readonly WORLD_WIDTH = 2048;
+  public static readonly WORLD_HEIGHT = 1152;
 
   private static masterImg: HTMLImageElement | null = null;
   private static preloadingPromise: Promise<void> | null = null;
 
   /**
-   * Pré-carrega a nova imagem-mestre unificada do Vale Verdejante (1376×768)
+   * Pré-carrega a nova imagem-mestre unificada do Vale Verdejante (2048×1152)
    */
   public static preloadBackdropImages(): Promise<void> {
     if (this.preloadingPromise) {
@@ -31,7 +31,7 @@ export class ScenicValeBackground {
       this.masterImg.crossOrigin = 'anonymous';
 
       const done = () => {
-        console.log('[ScenicValeBackground] Nova Imagem-Mestre carregada com sucesso (1376×768).');
+        console.log('[ScenicValeBackground] Nova Imagem-Mestre carregada com sucesso (2048×1152).');
         resolve();
       };
 
@@ -51,7 +51,7 @@ export class ScenicValeBackground {
   }
 
   /**
-   * Gera a textura GPU para a nova imagem-mestre unificada do Vale Verdejante (1376×768).
+   * Gera a textura GPU para a nova imagem-mestre unificada do Vale Verdejante (2048×1152).
    * Sem crop, sem distorção e sem mosaicos procedurais sobrepostos.
    */
   public static generateUnifiedMasterBackground(device: GraphicsDevice): Texture {
@@ -66,7 +66,7 @@ export class ScenicValeBackground {
 
     const drawBackdrop = () => {
       if (this.masterImg && this.masterImg.complete && this.masterImg.naturalWidth > 0) {
-        console.log('[ScenicValeBackground] Renderizando nova Imagem-Mestre real (1376×768)...');
+        console.log('[ScenicValeBackground] Renderizando nova Imagem-Mestre real (2048×1152)...');
         ctx.drawImage(this.masterImg, 0, 0, W, H);
       } else {
         // Fallback transitório de cor do solo do vale enquanto carrega
