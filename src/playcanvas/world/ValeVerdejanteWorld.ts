@@ -399,26 +399,72 @@ export class ValeVerdejanteWorld {
       this.godrayEntities.push(gEnt);
     }
 
-    // 17. Paredes Perimetrais do Mundo e Limites de Navegação dos Setores
-    // SETOR CENTRO:
-    // Limite Oeste, Norte e Sul
-    collision.addCollider({ id: 'bound_left', x: 10, y: 256, width: 20, height: 512 });
-    collision.addCollider({ id: 'bound_bottom', x: 384, y: 10, width: 768, height: 20 });
-    collision.addCollider({ id: 'bound_top', x: 384, y: 502, width: 768, height: 20 });
+    // 17. Limites Perimetrais Globais do Mundo Contínuo
+    // O mundo não possui mais divisões ou paredes entre setores internos (X = 768 é livre).
+    // As paredes existem unicamente no contorno perimetral do mundo total.
+    this.setupGlobalPerimeterColliders(collision, this.worldWidth * 2, this.worldHeight);
+  }
 
-    // Limite Leste do Setor Centro: Dividido para deixar a trilha (Y = 226..284) totalmente LIVRE!
-    collision.addCollider({ id: 'bound_centro_right_north', x: 758, y: 398, width: 20, height: 228 });
-    collision.addCollider({ id: 'bound_centro_right_south', x: 758, y: 113, width: 20, height: 226 });
+  private groundTestEntity: Entity | null = null;
 
-    // SETOR LESTE:
-    // Limite Oeste do Setor Leste: Espelha a abertura da trilha (Y = 226..284) para passagem contínua
-    collision.addCollider({ id: 'bound_leste_left_north', x: 778, y: 398, width: 20, height: 228 });
-    collision.addCollider({ id: 'bound_leste_left_south', x: 778, y: 113, width: 20, height: 226 });
+  /**
+   * Atualiza as paredes perimetrais globais quando a extensão total do mundo se altera.
+   */
+  public setupGlobalPerimeterColliders(collision: CollisionSystem, totalWidth: number, totalHeight = 512): void {
+    // Remove qualquer colisor de fronteira interna legado ou perimetral anterior
+    collision.removeCollider('bound_left');
+    collision.removeCollider('bound_right');
+    collision.removeCollider('bound_top');
+    collision.removeCollider('bound_bottom');
+    collision.removeCollider('bound_centro_right_north');
+    collision.removeCollider('bound_centro_right_south');
+    collision.removeCollider('bound_leste_left_north');
+    collision.removeCollider('bound_leste_left_south');
+    collision.removeCollider('bound_leste_top');
+    collision.removeCollider('bound_leste_bottom');
+    collision.removeCollider('bound_leste_right');
 
-    // Limites Perimetrais Norte, Sul e Leste do Setor Leste
-    collision.addCollider({ id: 'bound_leste_bottom', x: 1152, y: 10, width: 768, height: 20 });
-    collision.addCollider({ id: 'bound_leste_top', x: 1152, y: 502, width: 768, height: 20 });
-    collision.addCollider({ id: 'bound_leste_right', x: 1526, y: 256, width: 20, height: 512 });
+    const halfW = totalWidth * 0.5;
+    const halfH = totalHeight * 0.5;
+
+    // Parede Oeste (Início do mundo)
+    collision.addCollider({ id: 'bound_left', x: 10, y: halfH, width: 20, height: totalHeight });
+
+    // Parede Leste (Extremo leste do mundo contínuo)
+    collision.addCollider({ id: 'bound_right', x: totalWidth - 10, y: halfH, width: 20, height: totalHeight });
+
+    // Parede Norte (Topo contínuo de todo o mapa)
+    collision.addCollider({ id: 'bound_top', x: halfW, y: totalHeight - 10, width: totalWidth, height: 20 });
+
+    // Parede Sul (Base contínua de todo o mapa)
+    collision.addCollider({ id: 'bound_bottom', x: halfW, y: 10, width: totalWidth, height: 20 });
+  }
+
+  /**
+   * Permite adicionar/remover o chão placeholder técnico para o Setor 3 no teste de extensibilidade.
+   */
+  public setExtensibilityTestVisual(device: GraphicsDevice, enabled: boolean): void {
+    if (enabled && !this.groundTestEntity) {
+      this.groundTestEntity = new Entity('Ground_ScenicMaster_Test');
+      this.groundTestEntity.setPosition(1536 + 384, 256, 0); // Centro em 1920
+      const mesh = createPixelQuadMesh(device, {
+        width: 768,
+        height: 512,
+        pivotX: 0.5,
+        pivotY: 0.5,
+      });
+      const mat = createPixelMaterial({
+        diffuseMap: PlayCanvasAssets.getTexture('valeverdejante_leste_master_bg'),
+        transparent: false,
+      });
+      this.groundTestEntity.addComponent('render', {
+        meshInstances: [new MeshInstance(mesh, mat)],
+      });
+      this.rootEntity.addChild(this.groundTestEntity);
+    } else if (!enabled && this.groundTestEntity) {
+      this.groundTestEntity.destroy();
+      this.groundTestEntity = null;
+    }
   }
 
   /**

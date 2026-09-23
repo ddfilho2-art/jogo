@@ -179,7 +179,7 @@ export class ScenarioSpatialMap {
       name: 'Escarpas Rochosas Perimetrais',
       biome: BiomeType.CLIFF,
       description: 'Elevações rochosas nas bordas montanhosas',
-      contains: (x, y) => y >= 490 || x <= 22 || (x >= 740 && x <= 768 && y <= 100) || x >= 1515,
+      contains: (x, y) => y >= 490 || x <= 22 || (x >= 740 && x <= 768 && y <= 100),
     },
     // 7. Bosque Alto Oriental (Setor Leste)
     {
@@ -187,7 +187,7 @@ export class ScenarioSpatialMap {
       name: 'Bosque Alto Oriental',
       biome: BiomeType.FOREST,
       description: 'Mata aberta de carvalhos e vegetação ensolarada além do rio',
-      contains: (x, y) => x >= 768 && y >= 370,
+      contains: (x, y) => x >= 768 && x <= 1536 && y >= 370,
     },
     // 8. Meandros Baixos do Vale (Setor Leste)
     {
@@ -195,7 +195,7 @@ export class ScenarioSpatialMap {
       name: 'Meandros Baixos do Vale',
       biome: BiomeType.RIVERBANK,
       description: 'Solo aluvial e áreas úmidas na bacia de transição do rio',
-      contains: (x, y) => x >= 768 && y <= 150,
+      contains: (x, y) => x >= 768 && x <= 1536 && y <= 150,
     },
     // 9. Clareira Oriental do Vale (Setor Leste)
     {
@@ -203,9 +203,17 @@ export class ScenarioSpatialMap {
       name: 'Clareira Oriental do Vale',
       biome: BiomeType.FIELD,
       description: 'Planície aberta e iluminada além da ponte do rio',
-      contains: (x) => x >= 768,
+      contains: (x, y) => x >= 768 && x <= 1536 && y > 150 && y < 370,
     },
-    // 10. Planície Central e Clareiras (Setor Centro)
+    // 10. Fronteira Aberta de Expansão Contínua (X > 1536)
+    {
+      id: 'open_frontier_sector3',
+      name: 'Fronteira Aberta de Expansão',
+      biome: BiomeType.FIELD,
+      description: 'Extensão contínua do mundo conectada sem barreiras artificiais',
+      contains: (x, _) => x > 1536,
+    },
+    // 11. Planície Central e Clareiras (Setor Centro)
     {
       id: 'central_glade',
       name: 'Prado Central Ensolarado',

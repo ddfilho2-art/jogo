@@ -2,12 +2,13 @@ import { GraphicsDevice, Texture } from 'playcanvas';
 import { createPixelTexture } from '../rendering/GraphicsBackend';
 import terrainBenchmarkUrl from '../../assets/images/terrain_benchmark_v6_1788973236244.jpg';
 import treesRocksUrl from '../../assets/images/trees_rocks_v6_1788973221539.jpg';
+import valeVerdejanteLesteUrl from '../../assets/images/vale_verdejante_leste.jpg';
 
 // =============================================================================
 // ELDRIM: ECOS DO PASSADO - SCENIC VALE BACKGROUND (PLAYCANVAS ENGINE V2)
 // =============================================================================
 // Pipeline Visual Híbrido Restaurado:
-// 1. BACKDROP ARTÍSTICO BASE (terrain_benchmark_v6_raw) em alta fidelidade pictórica (768×512)
+// 1. BACKDROP ARTÍSTICO BASE (terrain_benchmark_v6_raw e vale_verdejante_leste) em alta fidelidade pictórica (768×512)
 // 2. ELEMENTOS RENDERIZADOS & DINÂMICOS (PlayCanvas Y-Sort, árvores, rochas, props, Ren)
 // 3. CAMADA DE PRIMEIRO PLANO (Foreground Canopy / Galhos e Copas em Z=23)
 // 4. ÁGUA E EFEITOS DINÂMICOS (Fluxo de rio, ondulação, espuma, reflexos)
@@ -20,6 +21,7 @@ export class ScenicValeBackground {
 
   private static benchmarkImg: HTMLImageElement | null = null;
   private static treesRocksImg: HTMLImageElement | null = null;
+  private static lesteBenchmarkImg: HTMLImageElement | null = null;
   private static preloadingPromise: Promise<void> | null = null;
 
   /**
@@ -31,11 +33,11 @@ export class ScenicValeBackground {
     }
 
     this.preloadingPromise = new Promise((resolve) => {
-      let pending = 2;
+      let pending = 3;
       const done = () => {
         pending--;
         if (pending <= 0) {
-          console.log('[ScenicValeBackground] Imagens de backdrop artístico carregadas com sucesso.');
+          console.log('[ScenicValeBackground] Imagens de backdrop artístico carregadas com sucesso (Centro e Leste).');
           resolve();
         }
       };
@@ -61,6 +63,18 @@ export class ScenicValeBackground {
       };
       this.treesRocksImg.src = treesRocksUrl;
       if (this.treesRocksImg.complete && this.treesRocksImg.naturalWidth > 0) {
+        done();
+      }
+
+      this.lesteBenchmarkImg = new Image();
+      this.lesteBenchmarkImg.crossOrigin = 'anonymous';
+      this.lesteBenchmarkImg.onload = done;
+      this.lesteBenchmarkImg.onerror = (e) => {
+        console.warn('[ScenicValeBackground] Aviso ao carregar vale_verdejante_leste:', e);
+        done();
+      };
+      this.lesteBenchmarkImg.src = valeVerdejanteLesteUrl;
+      if (this.lesteBenchmarkImg.complete && this.lesteBenchmarkImg.naturalWidth > 0) {
         done();
       }
     });
@@ -111,237 +125,46 @@ export class ScenicValeBackground {
   }
 
   /**
-   * Gera a textura estática HD do setor Vale Verdejante Leste (768×512).
-   * Garante continuidade matemática e visual rigorosa na fronteira X = 0 (X = 768 no mundo):
-   * - A trilha de terra entra em X=0, Y=257.5 com largura de 52px, perfeitamente alinhada à saída do Centro.
-   * - A floresta se abre gradualmente, com clareiras mais amplas e luz suave.
-   * - No sopé sul, o terreno aluvial e um córrego meandrado dão continuidade à bacia do rio em direção ao Charco.
+   * Gera a textura estática HD do setor Vale Verdejante Leste (768×512)
+   * utilizando o asset artístico rasterizado de imagem real (vale_verdejante_leste.jpg).
+   * Sem qualquer desenho procedural, gradientes ou elipses no canvas.
    */
-  public static generateLesteBackground(device: GraphicsDevice, W = 768, H = 512): Texture {
+  public static generateLesteBackground(device: GraphicsDevice): Texture {
+    const W = this.WORLD_WIDTH;
+    const H = this.WORLD_HEIGHT;
+
     const canvas = document.createElement('canvas');
     canvas.width = W;
     canvas.height = H;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) throw new Error('[ScenicValeBackground] Falha ao obter 2D context para Vale Leste');
+    const ctx = canvas.getContext('2d')!;
+    ctx.imageSmoothingEnabled = true;
 
-    ctx.imageSmoothingEnabled = false;
+    const drawLesteBackdrop = () => {
+      if (this.lesteBenchmarkImg && this.lesteBenchmarkImg.complete && this.lesteBenchmarkImg.naturalWidth > 0) {
+        console.log('[ScenicValeBackground] Aplicando vale_verdejante_leste como backdrop artístico rasterizado (768×512)...');
+        ctx.drawImage(this.lesteBenchmarkImg, 0, 0, W, H);
+      } else {
+        // Fallback básico enquanto a imagem carrega
+        ctx.fillStyle = '#1b3b24';
+        ctx.fillRect(0, 0, W, H);
+      }
+    };
 
-    // 1. Terreno Base contínuo (gramado verdejante com tons idênticos à borda leste do setor Centro)
-    ctx.fillStyle = '#1b3b24';
-    ctx.fillRect(0, 0, W, H);
-
-    // 2. Dossel Norte contínuo (sombra da mata fechada que vai abrindo gradualmente)
-    const northGrad = ctx.createLinearGradient(0, 0, 0, 210);
-    northGrad.addColorStop(0, '#132819');
-    northGrad.addColorStop(0.7, '#183420');
-    northGrad.addColorStop(1, '#1b3b24');
-    ctx.fillStyle = northGrad;
-    ctx.fillRect(0, 0, W, 220);
-
-    // 3. Clareira Oriental Ampla (floresta mais aberta, permitindo maior entrada de luz solar)
-    const eastGlade = ctx.createRadialGradient(420, 250, 40, 420, 250, 320);
-    eastGlade.addColorStop(0, '#356d44');
-    eastGlade.addColorStop(0.5, '#2a5e3a');
-    eastGlade.addColorStop(1, '#1b3b24');
-    ctx.fillStyle = eastGlade;
-    ctx.fillRect(0, 70, W, 370);
-
-    // 4. Sopé Sul Aluvial / Transição Úmida (continuidade da bacia hidrográfica do rio)
-    const southGrad = ctx.createLinearGradient(0, 370, 0, H);
-    southGrad.addColorStop(0, '#1b3b24');
-    southGrad.addColorStop(0.6, '#1a3324');
-    southGrad.addColorStop(1, '#152b1e');
-    ctx.fillStyle = southGrad;
-    ctx.fillRect(0, 370, W, H - 370);
-
-    // 5. Pintura orgânica de relevo, manchas de musgo e tufos de grama
-    this.drawLesteOrganicGrassPatches(ctx, W, H);
-
-    // 6. Continuidade do Meandro Aquático do Rio no flanco sudoeste do setor Leste
-    this.drawLesteSouthernWetland(ctx, W, H);
-
-    // 7. Continuidade da Trilha Principal Leste (alinhada à ponte e saída do setor Centro)
-    this.drawLesteOrganicTrails(ctx, W, H);
-
-    // 8. Elementos pictóricos de solo (pequenas rochas embutidas e flora rasteira)
-    this.drawLesteGroundDetails(ctx, W, H);
+    drawLesteBackdrop();
 
     const texture = createPixelTexture(device, canvas, false, 'valeverdejante_leste_master_bg');
+
+    if (this.lesteBenchmarkImg && !this.lesteBenchmarkImg.complete) {
+      this.lesteBenchmarkImg.addEventListener('load', () => {
+        console.log('[ScenicValeBackground] vale_verdejante_leste carregada assincronamente. Atualizando textura GPU...');
+        ctx.clearRect(0, 0, W, H);
+        ctx.drawImage(this.lesteBenchmarkImg!, 0, 0, W, H);
+        (texture as any)._levels[0] = canvas;
+        texture.upload();
+      });
+    }
+
     return texture;
-  }
-
-  // ===========================================================================
-  // MÉTODOS DE PINTURA PICTÓRICA PARA VALE VERDEJANTE LESTE
-  // ===========================================================================
-
-  private static drawLesteOrganicGrassPatches(ctx: CanvasRenderingContext2D, W: number, H: number): void {
-    let seed = 31415;
-    const rand = () => {
-      seed = (seed * 9301 + 49297) % 233280;
-      return seed / 233280;
-    };
-
-    const mossColors = ['#1e4429', '#245232', '#2a5e3a', '#326c42', '#3d7e4e', '#48905a'];
-    for (let i = 0; i < 380; i++) {
-      const rx = rand() * W;
-      const ry = rand() * H;
-
-      // Evita o miolo da trilha principal
-      if (Math.abs(ry - (257.5 + Math.sin(rx * 0.007) * 12)) < 30) continue;
-
-      const rw = 14 + rand() * 34;
-      const rh = 8 + rand() * 22;
-      const c = mossColors[Math.floor(rand() * mossColors.length)];
-
-      ctx.fillStyle = c;
-      ctx.beginPath();
-      ctx.ellipse(rx, ry, rw, rh, rand() * 0.5, 0, Math.PI * 2);
-      ctx.fill();
-    }
-
-    // Micro-lâminas de grama individuais
-    const bladeColors = ['#418854', '#4e9b63', '#5cae72', '#6ec184', '#7cd393'];
-    for (let i = 0; i < 2200; i++) {
-      const bx = Math.floor(rand() * W);
-      const by = Math.floor(rand() * H);
-      if (Math.abs(by - (257.5 + Math.sin(bx * 0.007) * 12)) < 24) continue;
-
-      const bh = 2 + Math.floor(rand() * 4);
-      ctx.fillStyle = bladeColors[Math.floor(rand() * bladeColors.length)];
-      ctx.fillRect(bx, by, 1, bh);
-    }
-  }
-
-  private static drawLesteSouthernWetland(ctx: CanvasRenderingContext2D, W: number, H: number): void {
-    // Braço de água rasa e lamaçais no sudoeste (continuidade do rio principal em direção ao futuro Charco)
-    // O rio sai do setor Centro pelo flanco leste inferior e meandra suavemente pela parte sul deste setor
-    for (let x = 0; x < 380; x += 2) {
-      const t = x / 380;
-      const cy = 440 + Math.sin(x * 0.015) * 16 - (1 - t) * 20;
-      const halfW = (1 - t * 0.5) * 36;
-
-      // Margem de lama aluvial
-      ctx.fillStyle = '#141f17';
-      ctx.fillRect(x, Math.floor(cy - halfW - 8), 3, Math.floor((halfW + 8) * 2));
-
-      // Barro úmido
-      ctx.fillStyle = '#2b2116';
-      ctx.fillRect(x, Math.floor(cy - halfW - 3), 3, Math.floor((halfW + 3) * 2));
-
-      // Água rasa cristalina (turquesa escura)
-      ctx.fillStyle = '#065f46';
-      ctx.fillRect(x, Math.floor(cy - halfW), 3, Math.floor(halfW * 2));
-
-      ctx.fillStyle = '#0e7490';
-      ctx.fillRect(x, Math.floor(cy - halfW * 0.6), 3, Math.floor(halfW * 1.2));
-
-      ctx.fillStyle = '#0284c7';
-      ctx.fillRect(x, Math.floor(cy - halfW * 0.3), 3, Math.floor(halfW * 0.6));
-    }
-  }
-
-  private static drawLesteOrganicTrails(ctx: CanvasRenderingContext2D, W: number, H: number): void {
-    // A trilha entra em X=0, Y=257.5 (Canvas Y) correspondendo a Y=254.5 no mundo (mesma altura da ponte)
-    const getLestePathCenterY = (x: number) => {
-      return 257.5 + Math.sin(x * 0.007) * 12 + Math.cos(x * 0.015) * 5;
-    };
-
-    for (let x = 0; x < W; x += 2) {
-      const cy = getLestePathCenterY(x);
-      const halfW = 28 + Math.sin(x * 0.02) * 5 + Math.cos(x * 0.04) * 3;
-
-      // Camada de solo escuro (bordas da trilha)
-      ctx.fillStyle = '#26160d';
-      ctx.fillRect(x, Math.floor(cy - halfW - 4), 3, Math.floor((halfW + 4) * 2));
-
-      // Terra batida rica
-      ctx.fillStyle = '#482a17';
-      ctx.fillRect(x, Math.floor(cy - halfW), 3, Math.floor(halfW * 2));
-
-      // Miolo da trilha compactada
-      ctx.fillStyle = '#6e4428';
-      ctx.fillRect(x, Math.floor(cy - halfW * 0.65), 3, Math.floor(halfW * 1.3));
-
-      // Iluminação central da trilha
-      ctx.fillStyle = '#8f5c38';
-      ctx.fillRect(x, Math.floor(cy - halfW * 0.35), 3, Math.floor(halfW * 0.7));
-
-      ctx.fillStyle = '#ad754c';
-      ctx.fillRect(x + 1, Math.floor(cy - 2), 2, 4);
-    }
-
-    // Pedrinhas e seixos embutidos na trilha
-    let seed = 9991;
-    const rand = () => {
-      seed = (seed * 9301 + 49297) % 233280;
-      return seed / 233280;
-    };
-
-    const pebbleColors = ['#475569', '#64748b', '#94a3b8', '#cbd5e1', '#334155'];
-    for (let i = 0; i < 300; i++) {
-      const px = rand() * W;
-      const cy = getLestePathCenterY(px);
-      const py = cy + (rand() - 0.5) * 38;
-
-      ctx.fillStyle = pebbleColors[Math.floor(rand() * pebbleColors.length)];
-      ctx.fillRect(Math.floor(px), Math.floor(py), 2, 2);
-      ctx.fillStyle = '#1e293b';
-      ctx.fillRect(Math.floor(px), Math.floor(py + 2), 2, 1);
-    }
-
-    // Grama invadindo sutilmente as bordas da trilha
-    for (let i = 0; i < 450; i++) {
-      const gx = rand() * W;
-      const cy = getLestePathCenterY(gx);
-      const side = rand() > 0.5 ? 1 : -1;
-      const gy = cy + side * (18 + rand() * 14);
-
-      ctx.fillStyle = '#2a5e3a';
-      ctx.fillRect(Math.floor(gx), Math.floor(gy), 2, 3);
-      ctx.fillStyle = '#48905a';
-      ctx.fillRect(Math.floor(gx + 1), Math.floor(gy), 1, 2);
-    }
-  }
-
-  private static drawLesteGroundDetails(ctx: CanvasRenderingContext2D, W: number, H: number): void {
-    // Rochas naturais embutidas no relevo do setor leste
-    const naturalRocks = [
-      { x: 160, y: 150, w: 26, h: 16 },
-      { x: 380, y: 120, w: 30, h: 18 },
-      { x: 580, y: 140, w: 24, h: 15 },
-      { x: 220, y: 390, w: 28, h: 17 },
-      { x: 480, y: 410, w: 32, h: 20 },
-      { x: 670, y: 380, w: 26, h: 16 },
-    ];
-
-    for (const r of naturalRocks) {
-      ctx.fillStyle = 'rgba(10, 20, 15, 0.65)';
-      ctx.beginPath();
-      ctx.ellipse(r.x, r.y + r.h * 0.4, r.w * 0.6, r.h * 0.35, 0, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.fillStyle = '#1e293b';
-      ctx.beginPath();
-      ctx.moveTo(r.x - r.w * 0.5, r.y + r.h * 0.3);
-      ctx.lineTo(r.x - r.w * 0.3, r.y - r.h * 0.4);
-      ctx.lineTo(r.x + r.w * 0.2, r.y - r.h * 0.5);
-      ctx.lineTo(r.x + r.w * 0.5, r.y + r.h * 0.2);
-      ctx.lineTo(r.x + r.w * 0.2, r.y + r.h * 0.5);
-      ctx.closePath();
-      ctx.fill();
-
-      ctx.fillStyle = '#334155';
-      ctx.beginPath();
-      ctx.moveTo(r.x - r.w * 0.3, r.y + r.h * 0.2);
-      ctx.lineTo(r.x - r.w * 0.2, r.y - r.h * 0.3);
-      ctx.lineTo(r.x + r.w * 0.2, r.y - r.h * 0.4);
-      ctx.lineTo(r.x + r.w * 0.35, r.y + r.h * 0.1);
-      ctx.closePath();
-      ctx.fill();
-
-      ctx.fillStyle = '#22543d';
-      ctx.fillRect(r.x - r.w * 0.2, r.y - r.h * 0.4, r.w * 0.4, 3);
-    }
   }
 
   /**
