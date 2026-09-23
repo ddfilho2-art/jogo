@@ -34,8 +34,8 @@ import { ScenarioSpatialMap } from './ScenarioSpatialMap';
 
 export class ValeVerdejanteWorld {
   public rootEntity: Entity;
-  public readonly worldWidth = 1376;
-  public readonly worldHeight = 768;
+  public readonly worldWidth = 2048;
+  public readonly worldHeight = 1152;
 
   public trees: TreeEntity[] = [];
   public rocks: RockEntity[] = [];
@@ -55,7 +55,7 @@ export class ValeVerdejanteWorld {
   constructor(device: GraphicsDevice, collision: CollisionSystem) {
     this.rootEntity = new Entity('ValeVerdejanteRoot');
 
-    // 1. Terreno Base: Novo Mapa-Mestre Unificado do Vale Verdejante (1376×768)
+    // 1. Terreno Base: Novo Mapa-Mestre Unificado do Vale Verdejante (2048×1152)
     // Fonte visual única e integral de verdade para todo o território.
     // Nenhuma imagem antiga é renderizada atrás, na frente ou ao lado.
     const groundEntity = new Entity('Ground_ScenicMaster');
@@ -382,7 +382,7 @@ export class ValeVerdejanteWorld {
 
     // 17. Limites Perimetrais Globais do Mundo Contínuo
     // O mundo não possui mais divisões ou paredes entre setores internos.
-    // As paredes existem unicamente no contorno perimetral do mundo total (1376×768).
+    // As paredes existem unicamente no contorno perimetral do mundo total (2048×1152).
     this.setupGlobalPerimeterColliders(collision, this.worldWidth, this.worldHeight);
   }
 
@@ -391,7 +391,7 @@ export class ValeVerdejanteWorld {
   /**
    * Atualiza as paredes perimetrais globais quando a extensão total do mundo se altera.
    */
-  public setupGlobalPerimeterColliders(collision: CollisionSystem, totalWidth: number, totalHeight = 768): void {
+  public setupGlobalPerimeterColliders(collision: CollisionSystem, totalWidth: number, totalHeight = 1152): void {
     // Remove qualquer colisor de fronteira interna legado ou perimetral anterior
     collision.removeCollider('bound_left');
     collision.removeCollider('bound_right');
