@@ -1,5 +1,5 @@
 # ELDRIM: ECOS DO PASSADO
-## ESPECIFICAÇÃO DE DIREÇÃO VISUAL E LINGUAGEM ARTÍSTICA (V14)
+## ESPECIFICAÇÃO DE DIREÇÃO VISUAL E LINGUAGEM ARTÍSTICA (V15)
 
 ---
 
@@ -53,7 +53,7 @@ Fica terminantemente proibido incorporar ou manter no pipeline visual os seguint
 - **Círculos Matemáticos Perfeitos:** Árvores, arbustos ou pedras desenhados através de fórmulas trigonométricas (`ctx.arc`).
 - **Retângulos e Blocos Primitivos:** Troncos, pontes e plataformas desenhados como caixas vetoriais sem textura de madeira ou talhe de pedra.
 - **Sombras por Gradientes Radiais Esfumados:** Manchas circulares cinzentas criadas com `ctx.createRadialGradient()`.
-- **Cenário Monolítico Estático:** Terrenos desenhados como ilustrações panorâmicas gigantes em arquivo único JPG (ex.: o atual backdrop estático de 768×512 do Vale), que impedem modularidade, causam artefatos de compressão e desassociam a arte visual da malha física.
+- **Fragmentação Visual Incoerente:** Proibido montar um mesmo território a partir de duas ou mais pinturas independentes, backdrops gerados separadamente ou peças com estilos, iluminação, relevo ou escala que possam produzir emendas visíveis. O Vale Verdejante deve possuir uma única imagem-mestre coerente como fonte visual do território.
 - **Transições em Ângulos Retos de 90°:** Bordas de caminho, grama ou água cortadas rigidamente em quinas de blocos 32×32 sem autotiling de suavização.
 - **Inimigos Geométricos Provisórios:** Cristais ou monstros feitos de triângulos monocromáticos inline de depuração.
 - **Cores Flutuantes Desarmônicas:** Elementos com paletas de saturação química pura (`#00ff00`, `#ff0000`) convivendo com cenários terrosos.
@@ -350,6 +350,6 @@ Antes de aprovar qualquer futuro asset ou cena reconstruída, o desenvolvedor ou
 ### 23. NOTAÇÃO DE DECISÕES EM ABERTO (`[DECISÃO VISUAL FUTURA]`)
 
 Para garantir transparência técnica, os seguintes pontos permanecem abertos para validação na etapa prática de implementação:
-- `[DECISÃO VISUAL FUTURA - TILEMAP WATER]`: Decidir se a água do rio será animada por uma tira de 4 tiles ciclando a 6 FPS ou através de sprites translúcidos de correnteza com deslocamento UV.
+- `[DECISÃO VISUAL FUTURA - WATER ANIMATION]`: Decidir se a água do rio será animada por uma tira de 4 frames ou através de sprites/UV de correnteza. A animação ocorre sobre a imagem-mestre e não deve reconstruir o rio por uma segunda imagem.
 - `[DECISÃO VISUAL FUTURA - ARQUIVO DE ATLAS]`: Decidir se os novos tiles e árvores serão consolidados em arquivos PNG estáticos na pasta `src/assets/` ou mantidos em renderizadores de textura dedicados em TypeScript compatíveis com a arquitetura do Phaser.
 - `[DECISÃO VISUAL FUTURA - INIMIGOS DO VALE]`: Definir o conceito temático definitivo para os inimigos provisórios (atualmente Cristal Corrompido e Espinho Rastejante), transformando-os em criaturas florestais nativas com animações completas de Idle e Hurt.
