@@ -59,9 +59,9 @@ export class WorldSectorManager {
 
   // Dimensões do mundo contínuo total agregadas dinamicamente
   private totalWorldMinX = 0;
-  private totalWorldMaxX = 1376;
+  private totalWorldMaxX = 2048;
   private totalWorldMinY = 0;
-  private totalWorldMaxY = 768;
+  private totalWorldMaxY = 1152;
 
   constructor(cameraSystem: CameraFollowSystem, collisionSystem?: CollisionSystem) {
     this.cameraSystem = cameraSystem;
@@ -69,7 +69,7 @@ export class WorldSectorManager {
       this.collisionSystem = collisionSystem;
     }
 
-    // Território Mestre Unificado do Vale Verdejante (1376×768)
+    // Território Mestre Unificado do Vale Verdejante (2048×1152)
     this.registerSector({
       id: WorldSectorManager.SECTOR_CENTRO_ID,
       name: 'Vale Verdejante - Território Mestre',
@@ -77,9 +77,9 @@ export class WorldSectorManager {
       description: 'Grande território contínuo de floresta temperada, clareira central e rio natural',
       worldBounds: {
         minX: 0,
-        maxX: 1376,
+        maxX: 2048,
         minY: 0,
-        maxY: 768,
+        maxY: 1152,
       },
     });
 
