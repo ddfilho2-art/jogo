@@ -9,7 +9,7 @@
 //    - cameraMinX = VIEW_HALF_WIDTH (320)
 //    - cameraMaxX = totalWorldMaxX - VIEW_HALF_WIDTH (e.g. 1536 - 320 = 1216, 2304 - 320 = 1984, etc.)
 //    - cameraMinY = VIEW_HALF_HEIGHT (180)
-//    - cameraMaxY = totalWorldMaxY - VIEW_HALF_HEIGHT (332 para altura 512)
+//    - cameraMaxY = totalWorldMaxY - VIEW_HALF_HEIGHT (972 para altura 1152)
 //    - A câmera desliza suavemente acompanhando Ren pelo mundo todo.
 //    - NENHUM salto, teleporte ou reinicialização de câmera ao cruzar fronteiras entre setores!
 //
@@ -40,8 +40,8 @@ export interface WorldSectorInfo {
 }
 
 export class WorldSectorManager {
-  public static readonly SECTOR_WIDTH = 768;
-  public static readonly SECTOR_HEIGHT = 512;
+  public static readonly SECTOR_WIDTH = 2048;
+  public static readonly SECTOR_HEIGHT = 1152;
 
   // Viewport ortográfico (640×360, orthoHeight = 180)
   public static readonly VIEW_HALF_WIDTH = 320;
@@ -138,7 +138,7 @@ export class WorldSectorManager {
       name: 'Vale Verdejante',
       region: 'Vale Verdejante',
       description: 'Região do Vale Verdejante',
-      worldBounds: { minX: 0, maxX: 1536, minY: 0, maxY: 512 },
+      worldBounds: { minX: 0, maxX: 2048, minY: 0, maxY: 1152 },
     };
   }
 
