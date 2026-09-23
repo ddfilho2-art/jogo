@@ -66,11 +66,12 @@ export interface SemanticRegionDefinition {
 }
 
 export class ScenarioSpatialMap {
-  public static readonly SECTOR_WIDTH = 768;
-  public static readonly SECTOR_HEIGHT = 512;
-  public static readonly TOTAL_WORLD_WIDTH = 1536;
-  public static readonly WORLD_WIDTH = 768; // Mantido para compatibilidade
-  public static readonly WORLD_HEIGHT = 512;
+  public static readonly SECTOR_WIDTH = 1376;
+  public static readonly SECTOR_HEIGHT = 768;
+  public static readonly TOTAL_WORLD_WIDTH = 1376;
+  public static readonly TOTAL_WORLD_HEIGHT = 768;
+  public static readonly WORLD_WIDTH = 1376;
+  public static readonly WORLD_HEIGHT = 768;
 
   // ===========================================================================
   // 1. MAPA SEMÂNTICO — ELEMENTOS FIXOS ORIGINAIS DA IMAGEM

@@ -59,9 +59,9 @@ export class WorldSectorManager {
 
   // Dimensões do mundo contínuo total agregadas dinamicamente
   private totalWorldMinX = 0;
-  private totalWorldMaxX = 1536;
+  private totalWorldMaxX = 1376;
   private totalWorldMinY = 0;
-  private totalWorldMaxY = 512;
+  private totalWorldMaxY = 768;
 
   constructor(cameraSystem: CameraFollowSystem, collisionSystem?: CollisionSystem) {
     this.cameraSystem = cameraSystem;
@@ -69,31 +69,17 @@ export class WorldSectorManager {
       this.collisionSystem = collisionSystem;
     }
 
-    // 1. Setor Centro: Clareira Central, Monólito e Ponte sobre o Rio (X = 0..768)
+    // Território Mestre Unificado do Vale Verdejante (1376×768)
     this.registerSector({
       id: WorldSectorManager.SECTOR_CENTRO_ID,
-      name: 'Vale Verdejante - Clareira Central',
+      name: 'Vale Verdejante - Território Mestre',
       region: 'Vale Verdejante',
-      description: 'Clareira com o monólito rúnico, trilhas de terra e ponte sobre o rio caudaloso',
+      description: 'Grande território contínuo de floresta temperada, clareira central e rio natural',
       worldBounds: {
         minX: 0,
-        maxX: 768,
+        maxX: 1376,
         minY: 0,
-        maxY: 512,
-      },
-    });
-
-    // 2. Setor Leste: Bosque mais aberto e clareiras amplas (X = 768..1536)
-    this.registerSector({
-      id: WorldSectorManager.SECTOR_LESTE_ID,
-      name: 'Vale Verdejante - Extensão Leste',
-      region: 'Vale Verdejante',
-      description: 'Bosque mais aberto além do rio, com solo firme e clareiras amplas',
-      worldBounds: {
-        minX: 768,
-        maxX: 1536,
-        minY: 0,
-        maxY: 512,
+        maxY: 768,
       },
     });
 

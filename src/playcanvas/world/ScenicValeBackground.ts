@@ -1,31 +1,25 @@
 import { GraphicsDevice, Texture } from 'playcanvas';
 import { createPixelTexture } from '../rendering/GraphicsBackend';
-import terrainBenchmarkUrl from '../../assets/images/terrain_benchmark_v6_1788973236244.jpg';
-import treesRocksUrl from '../../assets/images/trees_rocks_v6_1788973221539.jpg';
-import valeVerdejanteLesteUrl from '../../assets/images/vale_verdejante_leste.jpg';
+import valeVerdejanteMasterUrl from '../../assets/images/vale_verdejante_master_1790161308513.jpg';
 
 // =============================================================================
 // ELDRIM: ECOS DO PASSADO - SCENIC VALE BACKGROUND (PLAYCANVAS ENGINE V2)
 // =============================================================================
-// Pipeline Visual Híbrido Restaurado:
-// 1. BACKDROP ARTÍSTICO BASE (terrain_benchmark_v6_raw e vale_verdejante_leste) em alta fidelidade pictórica (768×512)
-// 2. ELEMENTOS RENDERIZADOS & DINÂMICOS (PlayCanvas Y-Sort, árvores, rochas, props, Ren)
-// 3. CAMADA DE PRIMEIRO PLANO (Foreground Canopy / Galhos e Copas em Z=23)
-// 4. ÁGUA E EFEITOS DINÂMICOS (Fluxo de rio, ondulação, espuma, reflexos)
-// 5. ATMOSFERA E ILUMINAÇÃO (Godrays, folhas caindo, partículas de poeira e vagalumes)
+// NOVO MAPA-MESTRE UNIFICADO DO VALE VERDEJANTE:
+// - Fonte visual única e integral de verdade para todo o território (1376×768)
+// - Pintura artística completa sem fatiamento, sem stitching, sem módulos separados
+// - Renderizada diretamente na GPU sem interpolação destrutiva ou crop arbitrário
 // =============================================================================
 
 export class ScenicValeBackground {
-  public static readonly WORLD_WIDTH = 768;
-  public static readonly WORLD_HEIGHT = 512;
+  public static readonly WORLD_WIDTH = 1376;
+  public static readonly WORLD_HEIGHT = 768;
 
-  private static benchmarkImg: HTMLImageElement | null = null;
-  private static treesRocksImg: HTMLImageElement | null = null;
-  private static lesteBenchmarkImg: HTMLImageElement | null = null;
+  private static masterImg: HTMLImageElement | null = null;
   private static preloadingPromise: Promise<void> | null = null;
 
   /**
-   * Pré-carrega os assets fotomecânicos e ilustrados de alta fidelidade antes da inicialização
+   * Pré-carrega a nova imagem-mestre unificada do Vale Verdejante (1376×768)
    */
   public static preloadBackdropImages(): Promise<void> {
     if (this.preloadingPromise) {
@@ -33,48 +27,22 @@ export class ScenicValeBackground {
     }
 
     this.preloadingPromise = new Promise((resolve) => {
-      let pending = 3;
+      this.masterImg = new Image();
+      this.masterImg.crossOrigin = 'anonymous';
+
       const done = () => {
-        pending--;
-        if (pending <= 0) {
-          console.log('[ScenicValeBackground] Imagens de backdrop artístico carregadas com sucesso (Centro e Leste).');
-          resolve();
-        }
+        console.log('[ScenicValeBackground] Nova Imagem-Mestre carregada com sucesso (1376×768).');
+        resolve();
       };
 
-      this.benchmarkImg = new Image();
-      this.benchmarkImg.crossOrigin = 'anonymous';
-      this.benchmarkImg.onload = done;
-      this.benchmarkImg.onerror = (e) => {
-        console.warn('[ScenicValeBackground] Aviso ao carregar terrain_benchmark_v6_raw:', e);
+      this.masterImg.onload = done;
+      this.masterImg.onerror = (e) => {
+        console.warn('[ScenicValeBackground] Aviso ao carregar vale_verdejante_master:', e);
         done();
       };
-      this.benchmarkImg.src = terrainBenchmarkUrl;
-      if (this.benchmarkImg.complete && this.benchmarkImg.naturalWidth > 0) {
-        done();
-      }
 
-      this.treesRocksImg = new Image();
-      this.treesRocksImg.crossOrigin = 'anonymous';
-      this.treesRocksImg.onload = done;
-      this.treesRocksImg.onerror = (e) => {
-        console.warn('[ScenicValeBackground] Aviso ao carregar trees_rocks_v6_raw:', e);
-        done();
-      };
-      this.treesRocksImg.src = treesRocksUrl;
-      if (this.treesRocksImg.complete && this.treesRocksImg.naturalWidth > 0) {
-        done();
-      }
-
-      this.lesteBenchmarkImg = new Image();
-      this.lesteBenchmarkImg.crossOrigin = 'anonymous';
-      this.lesteBenchmarkImg.onload = done;
-      this.lesteBenchmarkImg.onerror = (e) => {
-        console.warn('[ScenicValeBackground] Aviso ao carregar vale_verdejante_leste:', e);
-        done();
-      };
-      this.lesteBenchmarkImg.src = valeVerdejanteLesteUrl;
-      if (this.lesteBenchmarkImg.complete && this.lesteBenchmarkImg.naturalWidth > 0) {
+      this.masterImg.src = valeVerdejanteMasterUrl;
+      if (this.masterImg.complete && this.masterImg.naturalWidth > 0) {
         done();
       }
     });
@@ -83,53 +51,10 @@ export class ScenicValeBackground {
   }
 
   /**
-   * Gera a textura mestra do cenário do Vale Verdejante usando o Backdrop Artístico (terrain_benchmark_v6_raw)
+   * Gera a textura GPU para a nova imagem-mestre unificada do Vale Verdejante (1376×768).
+   * Sem crop, sem distorção e sem mosaicos procedurais sobrepostos.
    */
-  public static generateMasterBackground(device: GraphicsDevice): Texture {
-    const W = this.WORLD_WIDTH;
-    const H = this.WORLD_HEIGHT;
-
-    const canvas = document.createElement('canvas');
-    canvas.width = W;
-    canvas.height = H;
-    const ctx = canvas.getContext('2d')!;
-    ctx.imageSmoothingEnabled = false;
-
-    const drawBenchmarkBackdrop = () => {
-      if (this.benchmarkImg && this.benchmarkImg.complete && this.benchmarkImg.naturalWidth > 0) {
-        console.log('[ScenicValeBackground] Aplicando terrain_benchmark_v6_raw como backdrop artístico base (768×512)...');
-        ctx.drawImage(this.benchmarkImg, 0, 0, W, H);
-      } else {
-        // Fallback procedural de alta densidade pictórica
-        this.renderProceduralPainterlyScenery(ctx, W, H);
-      }
-    };
-
-    // Renderiza inicialmente
-    drawBenchmarkBackdrop();
-
-    const texture = createPixelTexture(device, canvas, false, 'valeverdejante_master_bg');
-
-    // Se a imagem ainda estiver carregando, agenda re-upload imediato no onload
-    if (this.benchmarkImg && !this.benchmarkImg.complete) {
-      this.benchmarkImg.addEventListener('load', () => {
-        console.log('[ScenicValeBackground] terrain_benchmark_v6_raw carregada assincronamente. Atualizando textura GPU...');
-        ctx.clearRect(0, 0, W, H);
-        ctx.drawImage(this.benchmarkImg!, 0, 0, W, H);
-        (texture as any)._levels[0] = canvas;
-        texture.upload();
-      });
-    }
-
-    return texture;
-  }
-
-  /**
-   * Gera a textura estática HD do setor Vale Verdejante Leste (768×512)
-   * utilizando o asset artístico rasterizado de imagem real (vale_verdejante_leste.jpg).
-   * Sem qualquer desenho procedural, gradientes ou elipses no canvas.
-   */
-  public static generateLesteBackground(device: GraphicsDevice): Texture {
+  public static generateUnifiedMasterBackground(device: GraphicsDevice): Texture {
     const W = this.WORLD_WIDTH;
     const H = this.WORLD_HEIGHT;
 
@@ -139,32 +64,43 @@ export class ScenicValeBackground {
     const ctx = canvas.getContext('2d')!;
     ctx.imageSmoothingEnabled = true;
 
-    const drawLesteBackdrop = () => {
-      if (this.lesteBenchmarkImg && this.lesteBenchmarkImg.complete && this.lesteBenchmarkImg.naturalWidth > 0) {
-        console.log('[ScenicValeBackground] Aplicando vale_verdejante_leste como backdrop artístico rasterizado (768×512)...');
-        ctx.drawImage(this.lesteBenchmarkImg, 0, 0, W, H);
+    const drawBackdrop = () => {
+      if (this.masterImg && this.masterImg.complete && this.masterImg.naturalWidth > 0) {
+        console.log('[ScenicValeBackground] Renderizando nova Imagem-Mestre real (1376×768)...');
+        ctx.drawImage(this.masterImg, 0, 0, W, H);
       } else {
-        // Fallback básico enquanto a imagem carrega
-        ctx.fillStyle = '#1b3b24';
+        // Fallback transitório de cor do solo do vale enquanto carrega
+        ctx.fillStyle = '#2c452e';
         ctx.fillRect(0, 0, W, H);
       }
     };
 
-    drawLesteBackdrop();
+    drawBackdrop();
 
-    const texture = createPixelTexture(device, canvas, false, 'valeverdejante_leste_master_bg');
+    const texture = createPixelTexture(device, canvas, false, 'valeverdejante_novo_master_map_bg');
 
-    if (this.lesteBenchmarkImg && !this.lesteBenchmarkImg.complete) {
-      this.lesteBenchmarkImg.addEventListener('load', () => {
-        console.log('[ScenicValeBackground] vale_verdejante_leste carregada assincronamente. Atualizando textura GPU...');
+    if (this.masterImg && !this.masterImg.complete) {
+      this.masterImg.addEventListener('load', () => {
+        console.log('[ScenicValeBackground] Nova Imagem-Mestre pronta assincronamente. Atualizando textura GPU...');
         ctx.clearRect(0, 0, W, H);
-        ctx.drawImage(this.lesteBenchmarkImg!, 0, 0, W, H);
+        ctx.drawImage(this.masterImg!, 0, 0, W, H);
         (texture as any)._levels[0] = canvas;
         texture.upload();
       });
     }
 
     return texture;
+  }
+
+  /**
+   * Mantido para compatibilidade temporária com código legado sem ser chamado em runtime.
+   */
+  public static generateMasterBackground(device: GraphicsDevice): Texture {
+    return this.generateUnifiedMasterBackground(device);
+  }
+
+  public static generateLesteBackground(device: GraphicsDevice): Texture {
+    return this.generateUnifiedMasterBackground(device);
   }
 
   /**

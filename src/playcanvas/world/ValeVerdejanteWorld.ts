@@ -34,8 +34,8 @@ import { ScenarioSpatialMap } from './ScenarioSpatialMap';
 
 export class ValeVerdejanteWorld {
   public rootEntity: Entity;
-  public readonly worldWidth = 768;
-  public readonly worldHeight = 512;
+  public readonly worldWidth = 1376;
+  public readonly worldHeight = 768;
 
   public trees: TreeEntity[] = [];
   public rocks: RockEntity[] = [];
@@ -55,9 +55,9 @@ export class ValeVerdejanteWorld {
   constructor(device: GraphicsDevice, collision: CollisionSystem) {
     this.rootEntity = new Entity('ValeVerdejanteRoot');
 
-    // 1. Terreno Base: Cenário Pré-Composto HD do Vale Verdejante (768×512)
-    // Contém gramado com variações de luz, trilha orgânica, leito profundo do rio,
-    // ponte rústica com sombra, pedras e botânica do solo em pintura unificada
+    // 1. Terreno Base: Novo Mapa-Mestre Unificado do Vale Verdejante (1376×768)
+    // Fonte visual única e integral de verdade para todo o território.
+    // Nenhuma imagem antiga é renderizada atrás, na frente ou ao lado.
     const groundEntity = new Entity('Ground_ScenicMaster');
     groundEntity.setPosition(this.worldWidth * 0.5, this.worldHeight * 0.5, 0);
     const groundMesh = createPixelQuadMesh(device, {
@@ -67,32 +67,13 @@ export class ValeVerdejanteWorld {
       pivotY: 0.5,
     });
     const groundMat = createPixelMaterial({
-      diffuseMap: PlayCanvasAssets.getTexture('valeverdejante_master_bg'),
+      diffuseMap: PlayCanvasAssets.getTexture('valeverdejante_novo_master_map_bg'),
       transparent: false,
     });
     groundEntity.addComponent('render', {
       meshInstances: [new MeshInstance(groundMesh, groundMat)],
     });
     this.rootEntity.addChild(groundEntity);
-
-    // 1b. Terreno Base: Cenário Pré-Composto HD do Setor Leste (768×512 em X = 768..1536)
-    // Continuação da floresta aberta além do rio, trilha leste e bacia meandrada
-    const groundLesteEntity = new Entity('Ground_ScenicMaster_Leste');
-    groundLesteEntity.setPosition(this.worldWidth + this.worldWidth * 0.5, this.worldHeight * 0.5, 0); // (1152, 256, 0)
-    const groundLesteMesh = createPixelQuadMesh(device, {
-      width: this.worldWidth,
-      height: this.worldHeight,
-      pivotX: 0.5,
-      pivotY: 0.5,
-    });
-    const groundLesteMat = createPixelMaterial({
-      diffuseMap: PlayCanvasAssets.getTexture('valeverdejante_leste_master_bg'),
-      transparent: false,
-    });
-    groundLesteEntity.addComponent('render', {
-      meshInstances: [new MeshInstance(groundLesteMesh, groundLesteMat)],
-    });
-    this.rootEntity.addChild(groundLesteEntity);
 
     // 2. Leito do Rio (X = 585) com fluxo dinâmico de água e ondulações cobrindo o canal (wX ~ 480..670)
     this.waterSystem = new WaterSystem(device, 585, 256, 175, 512);
@@ -400,9 +381,9 @@ export class ValeVerdejanteWorld {
     }
 
     // 17. Limites Perimetrais Globais do Mundo Contínuo
-    // O mundo não possui mais divisões ou paredes entre setores internos (X = 768 é livre).
-    // As paredes existem unicamente no contorno perimetral do mundo total.
-    this.setupGlobalPerimeterColliders(collision, this.worldWidth * 2, this.worldHeight);
+    // O mundo não possui mais divisões ou paredes entre setores internos.
+    // As paredes existem unicamente no contorno perimetral do mundo total (1376×768).
+    this.setupGlobalPerimeterColliders(collision, this.worldWidth, this.worldHeight);
   }
 
   private groundTestEntity: Entity | null = null;
@@ -410,7 +391,7 @@ export class ValeVerdejanteWorld {
   /**
    * Atualiza as paredes perimetrais globais quando a extensão total do mundo se altera.
    */
-  public setupGlobalPerimeterColliders(collision: CollisionSystem, totalWidth: number, totalHeight = 512): void {
+  public setupGlobalPerimeterColliders(collision: CollisionSystem, totalWidth: number, totalHeight = 768): void {
     // Remove qualquer colisor de fronteira interna legado ou perimetral anterior
     collision.removeCollider('bound_left');
     collision.removeCollider('bound_right');
@@ -446,15 +427,15 @@ export class ValeVerdejanteWorld {
   public setExtensibilityTestVisual(device: GraphicsDevice, enabled: boolean): void {
     if (enabled && !this.groundTestEntity) {
       this.groundTestEntity = new Entity('Ground_ScenicMaster_Test');
-      this.groundTestEntity.setPosition(1536 + 384, 256, 0); // Centro em 1920
+      this.groundTestEntity.setPosition(this.worldWidth + this.worldWidth * 0.5, this.worldHeight * 0.5, 0);
       const mesh = createPixelQuadMesh(device, {
-        width: 768,
-        height: 512,
+        width: this.worldWidth,
+        height: this.worldHeight,
         pivotX: 0.5,
         pivotY: 0.5,
       });
       const mat = createPixelMaterial({
-        diffuseMap: PlayCanvasAssets.getTexture('valeverdejante_leste_master_bg'),
+        diffuseMap: PlayCanvasAssets.getTexture('valeverdejante_novo_master_map_bg'),
         transparent: false,
       });
       this.groundTestEntity.addComponent('render', {
