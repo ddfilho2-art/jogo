@@ -57,6 +57,14 @@ export class ScenicValeBackground {
   public static generateUnifiedMasterBackground(device: GraphicsDevice): Texture {
     const W = this.WORLD_WIDTH;
     const H = this.WORLD_HEIGHT;
+    // Escala de composição do mapa: a pintura é mantida como fonte visual,
+    // mas não deve ser esticada para aumentar a largura aparente de estradas,
+    // árvores e demais referências ambientais. O território continua 2048×1152.
+    const MAP_CONTENT_SCALE = 0.72;
+    const mapW = Math.round(W * MAP_CONTENT_SCALE);
+    const mapH = Math.round(H * MAP_CONTENT_SCALE);
+    const mapX = Math.round((W - mapW) * 0.5);
+    const mapY = Math.round((H - mapH) * 0.5);
 
     const canvas = document.createElement('canvas');
     canvas.width = W;
@@ -67,7 +75,7 @@ export class ScenicValeBackground {
     const drawBackdrop = () => {
       if (this.masterImg && this.masterImg.complete && this.masterImg.naturalWidth > 0) {
         console.log('[ScenicValeBackground] Renderizando nova Imagem-Mestre real (2048×1152)...');
-        ctx.drawImage(this.masterImg, 0, 0, W, H);
+        ctx.drawImage(this.masterImg, mapX, mapY, mapW, mapH);
       } else {
         // Fallback transitório de cor do solo do vale enquanto carrega
         ctx.fillStyle = '#2c452e';
@@ -83,7 +91,7 @@ export class ScenicValeBackground {
       this.masterImg.addEventListener('load', () => {
         console.log('[ScenicValeBackground] Nova Imagem-Mestre pronta assincronamente. Atualizando textura GPU...');
         ctx.clearRect(0, 0, W, H);
-        ctx.drawImage(this.masterImg!, 0, 0, W, H);
+        ctx.drawImage(this.masterImg!, mapX, mapY, mapW, mapH);
         (texture as any)._levels[0] = canvas;
         texture.upload();
       });
