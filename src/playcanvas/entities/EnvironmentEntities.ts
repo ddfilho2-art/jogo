@@ -46,10 +46,10 @@ export class TreeEntity {
       type = treeTypeOrIsLarge;
     }
 
-    let width = 128;
-    let height = 140;
-    let shadowW = 134;
-    let shadowH = 58;
+    let width = 96;
+    let height = 112;
+    let shadowW = 104;
+    let shadowH = 46;
     let texName = 'tree_large';
     let shadowTex = 'sombra_tree_large';
     let colW = 32;
@@ -57,44 +57,44 @@ export class TreeEntity {
 
     switch (type) {
       case 'ancient':
-        width = 150;
-        height = 162;
-        shadowW = 156;
-        shadowH = 66;
+        width = 118;
+        height = 138;
+        shadowW = 126;
+        shadowH = 54;
         texName = 'tree_ancient';
         shadowTex = 'sombra_tree_ancient';
-        colW = 36;
-        colH = 20;
+        colW = 30;
+        colH = 17;
         break;
       case 'large':
-        width = 128;
-        height = 140;
-        shadowW = 134;
-        shadowH = 58;
+        width = 96;
+        height = 112;
+        shadowW = 104;
+        shadowH = 46;
         texName = 'tree_large';
         shadowTex = 'sombra_tree_large';
-        colW = 28;
-        colH = 16;
+        colW = 24;
+        colH = 14;
         break;
       case 'med':
-        width = 96;
-        height = 108;
-        shadowW = 102;
-        shadowH = 44;
+        width = 78;
+        height = 90;
+        shadowW = 84;
+        shadowH = 38;
         texName = 'tree_med';
         shadowTex = 'sombra_tree_med';
-        colW = 20;
-        colH = 12;
+        colW = 18;
+        colH = 11;
         break;
       case 'small':
-        width = 64;
-        height = 78;
-        shadowW = 68;
-        shadowH = 32;
+        width = 54;
+        height = 66;
+        shadowW = 58;
+        shadowH = 28;
         texName = 'tree_small';
         shadowTex = 'sombra_tree_small';
-        colW = 14;
-        colH = 9;
+        colW = 12;
+        colH = 8;
         break;
     }
 
